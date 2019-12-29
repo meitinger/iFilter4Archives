@@ -1,0 +1,7 @@
+LIBRARY iFilter4Archives
+
+EXPORTS
+  DllGetClassObject   PRIVATE
+  DllCanUnloadNow     PRIVATE
+  DllRegisterServer   PRIVATE
+  DllUnregisterServer PRIVATE
