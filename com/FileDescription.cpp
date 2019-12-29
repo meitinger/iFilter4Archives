@@ -21,7 +21,7 @@
 #include <filesystem>
 #include <functional>
 #include <mutex>
-#include <system_error>
+#include <stdexcept>
 
 namespace com
 {

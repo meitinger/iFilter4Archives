@@ -18,6 +18,8 @@
 
 #include "BridgeStream.hpp"
 
+#include <stdexcept>
+
 namespace streams
 {
     COM_CLASS_IMPLEMENTATION(BridgeStream,

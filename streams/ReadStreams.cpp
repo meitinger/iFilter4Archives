@@ -19,6 +19,7 @@
 #include "ReadStreams.hpp"
 
 #include <algorithm>
+#include <cassert>
 
 namespace streams
 {

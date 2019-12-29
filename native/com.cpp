@@ -20,7 +20,6 @@
 
 #include "registry.hpp"
 
-#include <cassert>
 #include <future>
 #include <ios>
 

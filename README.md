@@ -1,2 +1,2 @@
 # iFilter4Archives
- Windows Search iFilter for all archives supported by 7-Zip.
+ Windows Search iFilter for 7-Zip and other archives.

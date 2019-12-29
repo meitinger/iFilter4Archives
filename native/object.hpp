@@ -21,6 +21,7 @@
 #include "com.hpp"
 #include "pimpl.hpp"
 
+#include <memory>
 #include <stdexcept>
 #include <type_traits>
 #include <unordered_map>

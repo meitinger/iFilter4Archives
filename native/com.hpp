@@ -20,8 +20,9 @@
 
 #include "win32.hpp"
 
-#include <exception>
+#include <cassert>
 #include <memory>
+#include <new>
 #include <system_error>
 
 #include <comip.h>

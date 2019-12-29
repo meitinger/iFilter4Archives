@@ -18,11 +18,10 @@
 
 #include "Factory.hpp"
 
-#include "win32.hpp"
+#include "com.hpp"
 
 #include "Module.hpp"
 
-#include <algorithm>
 #include <filesystem>
 
 namespace archive
@@ -81,9 +80,9 @@ public:
     {
         // load 7z.dll and all other formats
         const auto filterDir = utils::get_module_file_path(utils::get_current_module().get()).parent_path();
-        LoadModule(PIMPL_(Formats), filterDir / "7z.dll");
-        LoadAllModules(PIMPL_(Formats), filterDir / "codecs"); // in case someone misplaces a DLL or a codec DLL also includes formats
-        LoadAllModules(PIMPL_(Formats), filterDir / "formats");
+        LoadModule(PIMPL_(Formats), filterDir / L"7z.dll");
+        LoadAllModules(PIMPL_(Formats), filterDir / L"codecs"); // in case someone misplaces a DLL or a codec DLL also includes formats
+        LoadAllModules(PIMPL_(Formats), filterDir / L"formats");
     }
 
     PIMPL_GETTER(Factory, const Factory::FormatsCollection&, Formats);

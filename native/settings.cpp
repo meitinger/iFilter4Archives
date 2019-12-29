@@ -34,10 +34,6 @@ namespace settings
         return std::nullopt;
     }
 
-    DWORD allowed_consecutive_get_chunk_errors_before_fail()
-    {
-        return read_dword(STR("AllowedConsecutiveGetChunkErrorsBeforeFail")).value_or(10);
-    }
     DWORD concurrent_filter_threads()
     {
         const auto value = read_dword(STR("ConcurrentFilterThreads"));
@@ -47,19 +43,29 @@ namespace settings
         }
         return std::thread::hardware_concurrency();
     }
+
     bool ignore_null_persistent_handler()
     {
         return read_dword(STR("IgnoreNullPersistentHandler")).value_or(1) != 0;
     }
+
     bool ignore_registered_persistent_handler_if_archive()
     {
         return read_dword(STR("IgnoreRegisteredPersistentHandlerIfArchive")).value_or(0) != 0;
     }
+
     std::optional<DWORD> max_buffer_size() { return read_dword(STR("MaximumBufferSize")); }
+
+    std::optional<DWORD> max_consecutive_error_chunks() { return read_dword(STR("MaximumConsecutiveErrorChunks")); }
+
     std::optional<DWORD> max_file_size() { return read_dword(STR("MaximumFileSize")); }
+
     std::optional<DWORD> min_available_memory() { return read_dword(STR("MinimumAvailableMemory")); }
+
     std::optional<DWORD> min_free_disk_space() { return read_dword(STR("MinimumFreeDiskSpace")); }
+
     DWORD recursion_depth_limit() { return read_dword(STR("RecursionDepthLimit")).value_or(1); }
+
     bool use_internal_persistent_handler_if_none_registered()
     {
         return read_dword(STR("UseInternalPersistentHandlerIfNoneRegistered")).value_or(1) != 0;

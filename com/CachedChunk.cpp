@@ -18,7 +18,8 @@
 
 #include "CachedChunk.hpp"
 
-#include <algorithm>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -26,7 +27,7 @@ namespace com
 {
     struct PropvariantCacheDeleter
     {
-        void operator()(PROPVARIANT* pPropValue)
+        void operator()(PROPVARIANT* pPropValue) noexcept
         {
             ::PropVariantClear(pPropValue);
             ::CoTaskMemFree(pPropValue);

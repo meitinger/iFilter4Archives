@@ -18,7 +18,6 @@
 
 #include "Registrar.hpp"
 
-#include "com.hpp"
 #include "registry.hpp"
 #include "settings.hpp"
 

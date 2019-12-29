@@ -18,8 +18,8 @@
 
 #pragma once
 
+#include "com.hpp"
 #include "pimpl.hpp"
-#include "win32.hpp"
 
 #include <optional>
 #include <string>

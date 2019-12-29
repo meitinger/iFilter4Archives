@@ -84,7 +84,7 @@ public:
         COM_DO_OR_THROW(PIMPL_(Library).CreateObject(PIMPL_(clsid), __uuidof(sevenzip::IInArchive), reinterpret_cast<void**>(&ptr)));
         if (!ptr)
         {
-            // this check is because we don't blindly trust the result of modules
+            // this check is done because we don't blindly trust the result of modules
             COM_THROW(E_NOINTERFACE);
         }
         return ptr;

@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "com.hpp"
 #include "pimpl.hpp"
 #include "sevenzip.hpp"
 

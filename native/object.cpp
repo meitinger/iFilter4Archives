@@ -19,6 +19,7 @@
 #include "object.hpp"
 
 #include <atomic>
+#include <cassert>
 
 namespace com
 {

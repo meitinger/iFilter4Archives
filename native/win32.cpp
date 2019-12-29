@@ -18,7 +18,7 @@
 
 #include "win32.hpp"
 
-#include <algorithm>
+#include <stdexcept>
 #include <vector>
 
 #pragma comment(lib, "Rpcrt4")

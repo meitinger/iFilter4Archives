@@ -24,6 +24,8 @@
 #include <condition_variable>
 #include <list>
 #include <mutex>
+#include <new>
+#include <stdexcept>
 #include <thread>
 
 namespace com
@@ -35,7 +37,7 @@ public:
     CLSID filterClsid;
     std::unique_ptr<streams::WriteStream> writeStream;
     ULONG recursionDepth;
-    DWORD maxConsecutiveErrors;
+    std::optional<DWORD> maxConsecutiveErrors;
     std::thread gatherer;
     std::mutex m;
     std::condition_variable cv;
@@ -54,7 +56,8 @@ public:
         PIMPL_(filterClsid) = filterClsid;
         PIMPL_(writeStream) = std::move(writeStream);
         PIMPL_(recursionDepth) = recursionDepth;
-        PIMPL_(maxConsecutiveErrors) = settings::allowed_consecutive_get_chunk_errors_before_fail() / recursionDepth;
+        PIMPL_(maxConsecutiveErrors) = settings::max_consecutive_error_chunks();
+        if (PIMPL_(maxConsecutiveErrors)) { PIMPL_(maxConsecutiveErrors) = *PIMPL_(maxConsecutiveErrors) / recursionDepth; } // fewer in recursions
     }
 
     void ItemTask::Run()
@@ -97,7 +100,7 @@ public:
                     if (chunk.Code == FILTER_E_END_OF_CHUNKS) { break; } // nothing more to come
                     if (FAILED(chunk.Code))
                     {
-                        if (++consecutiveErrors >= PIMPL_(maxConsecutiveErrors)) { break; } // too many failures in a row
+                        if (PIMPL_(maxConsecutiveErrors) && ++consecutiveErrors >= *PIMPL_(maxConsecutiveErrors)) { break; } // too many failures in a row
                     }
                     else { consecutiveErrors = 0; } // got at least one valid chunk
 
