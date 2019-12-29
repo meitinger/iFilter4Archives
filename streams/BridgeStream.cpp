@@ -20,48 +20,48 @@
 
 namespace streams
 {
-	COM_CLASS_IMPLEMENTATION(BridgeStream,
+    COM_CLASS_IMPLEMENTATION(BridgeStream,
 public:
-	IStreamPtr stream;
-	);
+    IStreamPtr stream;
+    );
 
-	BridgeStream::BridgeStream(IStreamPtr stream) : PIMPL_INIT()
-	{
-		if (!stream) { throw std::invalid_argument("stream"); }
-		PIMPL_(stream) = stream;
-	}
+    BridgeStream::BridgeStream(IStreamPtr stream) : PIMPL_INIT()
+    {
+        if (!stream) { throw std::invalid_argument("stream"); }
+        PIMPL_(stream) = stream;
+    }
 
-	STDMETHODIMP BridgeStream::Read(void* data, UINT32 size, UINT32* processedSize)
-	{
-		COM_CHECK_POINTER(data);
-		COM_CHECK_POINTER_AND_SET(processedSize, 0);
-		return PIMPL_(stream)->Read(data, size, reinterpret_cast<ULONG*>(processedSize));
-	}
+    STDMETHODIMP BridgeStream::Read(void* data, UINT32 size, UINT32* processedSize)
+    {
+        COM_CHECK_POINTER(data);
+        COM_CHECK_POINTER_AND_SET(processedSize, 0);
+        return PIMPL_(stream)->Read(data, size, reinterpret_cast<ULONG*>(processedSize));
+    }
 
-	STDMETHODIMP BridgeStream::Seek(INT64 offset, UINT32 seekOrigin, UINT64* newPosition)
-	{
-		auto liOffset = LARGE_INTEGER();
-		liOffset.QuadPart = offset;
-		if (newPosition == nullptr)
-		{
-			return PIMPL_(stream)->Seek(liOffset, seekOrigin, nullptr);
-		}
-		else
-		{
-			auto uliNewPosition = ULARGE_INTEGER();
-			uliNewPosition.QuadPart = *newPosition;
-			const auto result = PIMPL_(stream)->Seek(liOffset, seekOrigin, &uliNewPosition);
-			*newPosition = uliNewPosition.QuadPart;
-			return result;
-		}
-	}
+    STDMETHODIMP BridgeStream::Seek(INT64 offset, UINT32 seekOrigin, UINT64* newPosition)
+    {
+        auto liOffset = LARGE_INTEGER();
+        liOffset.QuadPart = offset;
+        if (newPosition == nullptr)
+        {
+            return PIMPL_(stream)->Seek(liOffset, seekOrigin, nullptr);
+        }
+        else
+        {
+            auto uliNewPosition = ULARGE_INTEGER();
+            uliNewPosition.QuadPart = *newPosition;
+            const auto result = PIMPL_(stream)->Seek(liOffset, seekOrigin, &uliNewPosition);
+            *newPosition = uliNewPosition.QuadPart;
+            return result;
+        }
+    }
 
-	STDMETHODIMP BridgeStream::GetSize(UINT64* size)
-	{
-		COM_CHECK_POINTER_AND_SET(size, 0);
-		auto stat = STATSTG();
-		COM_DO_OR_RETURN(PIMPL_(stream)->Stat(&stat, STATFLAG_NONAME));
-		*size = stat.cbSize.QuadPart;
-		return S_OK;
-	}
+    STDMETHODIMP BridgeStream::GetSize(UINT64* size)
+    {
+        COM_CHECK_POINTER_AND_SET(size, 0);
+        auto stat = STATSTG();
+        COM_DO_OR_RETURN(PIMPL_(stream)->Stat(&stat, STATFLAG_NONAME));
+        *size = stat.cbSize.QuadPart;
+        return S_OK;
+    }
 }

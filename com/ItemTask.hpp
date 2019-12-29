@@ -31,17 +31,17 @@
 
 namespace com
 {
-	class ItemTask; // calls the iFilter for an item in an archive, never ~ItemTask without SetEndOfExtraction and neither Abort() or NextChunk(...) == std::nullopt
+    class ItemTask; // calls the iFilter for an item in an archive, never ~ItemTask without SetEndOfExtraction and neither Abort() or NextChunk(...) == std::nullopt
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	SIMPLE_CLASS_DECLARATION(ItemTask,
+    SIMPLE_CLASS_DECLARATION(ItemTask,
 public:
-	ItemTask(const FilterAttributes& attributes, REFCLSID filterClsid, std::unique_ptr<streams::WriteStream> writeStream, ULONG recursionDepth);
+    ItemTask(const FilterAttributes& attributes, REFCLSID filterClsid, std::unique_ptr<streams::WriteStream> writeStream, ULONG recursionDepth);
 
-	void Run();
-	void SetEndOfExtraction(HRESULT hr);
-	void Abort();
-	std::optional<CachedChunk> NextChunk(ULONG id);
-	);
+    void Run();
+    void SetEndOfExtraction(HRESULT hr);
+    void Abort();
+    std::optional<CachedChunk> NextChunk(ULONG id);
+    );
 }

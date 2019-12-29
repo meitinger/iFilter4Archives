@@ -26,18 +26,18 @@
 
 namespace archive
 {
-	class Module; // holds a reference to a format library and pointers to its methods
+    class Module; // holds a reference to a format library and pointers to its methods
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	SIMPLE_CLASS_DECLARATION(Module,
+    SIMPLE_CLASS_DECLARATION(Module,
 public:
-	Module(const std::filesystem::path& path);
+    Module(const std::filesystem::path& path);
 
-	PROPERTY_READONLY(const std::filesystem::path&, Path, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(const std::filesystem::path&, Path, PIMPL_GETTER_ATTRIB);
 
-	HRESULT CreateObject(REFCLSID rclsid, REFIID riid, void** ppv) const noexcept;
-	HRESULT GetNumberOfFormats(UINT32& count) const noexcept;
-	HRESULT GetFormatProperty(UINT32 index, sevenzip::HandlerPropertyId propId, PROPVARIANT& value) const noexcept;
-	);
+    HRESULT CreateObject(REFCLSID rclsid, REFIID riid, void** ppv) const noexcept;
+    HRESULT GetNumberOfFormats(UINT32& count) const noexcept;
+    HRESULT GetFormatProperty(UINT32 index, sevenzip::HandlerPropertyId propId, PROPVARIANT& value) const noexcept;
+    );
 }

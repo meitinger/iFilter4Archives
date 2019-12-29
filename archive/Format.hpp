@@ -28,20 +28,20 @@
 
 namespace archive
 {
-	class Format; // description of an instanceable 7-Zip format
+    class Format; // description of an instanceable 7-Zip format
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	SIMPLE_CLASS_DECLARATION(Format,
+    SIMPLE_CLASS_DECLARATION(Format,
 public:
-	using ExtensionsCollection = std::unordered_set<std::wstring>;
+    using ExtensionsCollection = std::unordered_set<std::wstring>;
 
-	Format(const Module& library, UINT32 index);
+    Format(const Module& library, UINT32 index);
 
-	PROPERTY_READONLY(const Module&, Library, PIMPL_GETTER_ATTRIB);
-	PROPERTY_READONLY(const std::wstring&, Name, PIMPL_GETTER_ATTRIB);
-	PROPERTY_READONLY(const ExtensionsCollection&, Extensions, PIMPL_GETTER_ATTRIB); // guaranteed to be lower-case
+    PROPERTY_READONLY(const Module&, Library, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(const std::wstring&, Name, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(const ExtensionsCollection&, Extensions, PIMPL_GETTER_ATTRIB); // guaranteed to be lower-case
 
-	sevenzip::IInArchivePtr CreateArchive() const;
-	);
+    sevenzip::IInArchivePtr CreateArchive() const;
+    );
 }

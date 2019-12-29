@@ -27,81 +27,81 @@
 
 namespace archive
 {
-	SIMPLE_CLASS_IMPLEMENTATION(Factory,
+    SIMPLE_CLASS_IMPLEMENTATION(Factory,
 public:
-	FormatsCollection Formats;
-	);
+    FormatsCollection Formats;
+    );
 
-	static void LoadModule(Factory::FormatsCollection& formats, const std::filesystem::path& path)
-	{
-		const auto library = Module(path);
-		auto formatCount = UINT32(0);
-		COM_DO_OR_THROW(library.GetNumberOfFormats(formatCount));
-		for (auto i = UINT32(0); i < formatCount; i++)
-		{
-			try
-			{
-				// add all formats for non-existing extensions
-				const auto format = Format(library, i);
-				for (const auto& ext : format.Extensions)
-				{
-					if (formats.find(ext) == formats.end())
-					{
-						formats.insert_or_assign(ext, format);
-					}
-				}
-			}
-			catch (...) {}
-		}
-	}
+    static void LoadModule(Factory::FormatsCollection& formats, const std::filesystem::path& path)
+    {
+        const auto library = Module(path);
+        auto formatCount = UINT32(0);
+        COM_DO_OR_THROW(library.GetNumberOfFormats(formatCount));
+        for (auto i = UINT32(0); i < formatCount; i++)
+        {
+            try
+            {
+                // add all formats for non-existing extensions
+                const auto format = Format(library, i);
+                for (const auto& ext : format.Extensions)
+                {
+                    if (formats.find(ext) == formats.end())
+                    {
+                        formats.insert_or_assign(ext, format);
+                    }
+                }
+            }
+            catch (...) {}
+        }
+    }
 
-	static void LoadAllModules(Factory::FormatsCollection& formats, const std::filesystem::path& directory)
-	{
-		// ensure the argument is a directory
-		if (!std::filesystem::is_directory(directory))
-		{
-			return;
-		}
-		for (const auto& entry : std::filesystem::directory_iterator(directory))
-		{
-			// only load dlls (I can't believe I have to resort to _wcsnicmp in C++)
-			const auto& path = entry.path();
-			if (entry.is_directory() || _wcsnicmp(path.extension().c_str(), L".dll", MAXSIZE_T))
-			{
-				continue;
-			}
+    static void LoadAllModules(Factory::FormatsCollection& formats, const std::filesystem::path& directory)
+    {
+        // ensure the argument is a directory
+        if (!std::filesystem::is_directory(directory))
+        {
+            return;
+        }
+        for (const auto& entry : std::filesystem::directory_iterator(directory))
+        {
+            // only load dlls (I can't believe I have to resort to _wcsnicmp in C++)
+            const auto& path = entry.path();
+            if (entry.is_directory() || _wcsnicmp(path.extension().c_str(), L".dll", MAXSIZE_T))
+            {
+                continue;
+            }
 
-			// ignore errors
-			try { LoadModule(formats, path); }
-			catch (...) {}
-		}
-	}
+            // ignore errors
+            try { LoadModule(formats, path); }
+            catch (...) {}
+        }
+    }
 
-	Factory::Factory() : PIMPL_INIT()
-	{
-		// load 7z.dll and all other formats
-		const auto filterDir = utils::get_module_file_path(utils::get_current_module().get()).parent_path();
-		LoadModule(PIMPL_(Formats), filterDir / "7z.dll");
-		LoadAllModules(PIMPL_(Formats), filterDir / "codecs"); // in case someone misplaces a DLL or a codec DLL also includes formats
-		LoadAllModules(PIMPL_(Formats), filterDir / "formats");
-	}
+    Factory::Factory() : PIMPL_INIT()
+    {
+        // load 7z.dll and all other formats
+        const auto filterDir = utils::get_module_file_path(utils::get_current_module().get()).parent_path();
+        LoadModule(PIMPL_(Formats), filterDir / "7z.dll");
+        LoadAllModules(PIMPL_(Formats), filterDir / "codecs"); // in case someone misplaces a DLL or a codec DLL also includes formats
+        LoadAllModules(PIMPL_(Formats), filterDir / "formats");
+    }
 
-	PIMPL_GETTER(Factory, const Factory::FormatsCollection&, Formats);
+    PIMPL_GETTER(Factory, const Factory::FormatsCollection&, Formats);
 
-	const Factory& Factory::GetInstance()
-	{
-		static const auto instance = Factory();
-		return instance;
-	}
+    const Factory& Factory::GetInstance()
+    {
+        static const auto instance = Factory();
+        return instance;
+    }
 
-	sevenzip::IInArchivePtr Factory::CreateArchiveFromExtension(const std::wstring& extension)
-	{
-		const auto& formats = GetInstance().Formats;
-		const auto formatEntry = formats.find(extension);
-		if (formatEntry == formats.end())
-		{
-			COM_THROW(FILTER_E_UNKNOWNFORMAT);
-		}
-		return formatEntry->second.CreateArchive();
-	}
+    sevenzip::IInArchivePtr Factory::CreateArchiveFromExtension(const std::wstring& extension)
+    {
+        const auto& formats = GetInstance().Formats;
+        const auto formatEntry = formats.find(extension);
+        if (formatEntry == formats.end())
+        {
+            COM_THROW(FILTER_E_UNKNOWNFORMAT);
+        }
+        return formatEntry->second.CreateArchive();
+    }
 }

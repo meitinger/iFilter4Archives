@@ -28,20 +28,20 @@
 
 namespace archive
 {
-	class Factory; // loads all 7-Zip modules and provides a format lookup based on file extensions
+    class Factory; // loads all 7-Zip modules and provides a format lookup based on file extensions
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	SIMPLE_CLASS_DECLARATION(Factory,
+    SIMPLE_CLASS_DECLARATION(Factory,
 private:
-	Factory();
+    Factory();
 
 public:
-	using FormatsCollection = std::unordered_map<std::wstring, Format>;
+    using FormatsCollection = std::unordered_map<std::wstring, Format>;
 
-	PROPERTY_READONLY(const FormatsCollection&, Formats, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(const FormatsCollection&, Formats, PIMPL_GETTER_ATTRIB);
 
-	static const Factory& GetInstance(); // sadly, there are no static properties
-	static sevenzip::IInArchivePtr CreateArchiveFromExtension(const std::wstring& extension); // extension must be lower-case and dot-prefixed
-	);
+    static const Factory& GetInstance(); // sadly, there are no static properties
+    static sevenzip::IInArchivePtr CreateArchiveFromExtension(const std::wstring& extension); // extension must be lower-case and dot-prefixed
+    );
 }

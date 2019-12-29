@@ -22,38 +22,38 @@
 
 namespace archive
 {
-	SIMPLE_CLASS_IMPLEMENTATION(Module,
+    SIMPLE_CLASS_IMPLEMENTATION(Module,
 public:
-	std::filesystem::path Path;
-	win32::unique_library_ptr modulePtr;
-	sevenzip::Func_CreateObject createObjectFunc;
-	sevenzip::Func_GetNumberOfFormats getNumberOfFormatsFunc;
-	sevenzip::Func_GetHandlerProperty2 getFormatPropertyFunc;
-	);
+    std::filesystem::path Path;
+    win32::unique_library_ptr modulePtr;
+    sevenzip::Func_CreateObject createObjectFunc;
+    sevenzip::Func_GetNumberOfFormats getNumberOfFormatsFunc;
+    sevenzip::Func_GetHandlerProperty2 getFormatPropertyFunc;
+    );
 
-	Module::Module(const std::filesystem::path& path) : PIMPL_INIT()
-	{
-		PIMPL_(Path) = path;
-		PIMPL_(modulePtr) = utils::load_module(path);
-		WIN32_DO_OR_THROW(PIMPL_(createObjectFunc) = reinterpret_cast<sevenzip::Func_CreateObject>(::GetProcAddress(PIMPL_(modulePtr).get(), "CreateObject")));
-		WIN32_DO_OR_THROW(PIMPL_(getNumberOfFormatsFunc) = reinterpret_cast<sevenzip::Func_GetNumberOfFormats>(::GetProcAddress(PIMPL_(modulePtr).get(), "GetNumberOfFormats")));
-		WIN32_DO_OR_THROW(PIMPL_(getFormatPropertyFunc) = reinterpret_cast<sevenzip::Func_GetHandlerProperty2>(::GetProcAddress(PIMPL_(modulePtr).get(), "GetHandlerProperty2")));
-	}
+    Module::Module(const std::filesystem::path& path) : PIMPL_INIT()
+    {
+        PIMPL_(Path) = path;
+        PIMPL_(modulePtr) = utils::load_module(path);
+        WIN32_DO_OR_THROW(PIMPL_(createObjectFunc) = reinterpret_cast<sevenzip::Func_CreateObject>(::GetProcAddress(PIMPL_(modulePtr).get(), "CreateObject")));
+        WIN32_DO_OR_THROW(PIMPL_(getNumberOfFormatsFunc) = reinterpret_cast<sevenzip::Func_GetNumberOfFormats>(::GetProcAddress(PIMPL_(modulePtr).get(), "GetNumberOfFormats")));
+        WIN32_DO_OR_THROW(PIMPL_(getFormatPropertyFunc) = reinterpret_cast<sevenzip::Func_GetHandlerProperty2>(::GetProcAddress(PIMPL_(modulePtr).get(), "GetHandlerProperty2")));
+    }
 
-	PIMPL_GETTER(Module, const std::filesystem::path&, Path);
+    PIMPL_GETTER(Module, const std::filesystem::path&, Path);
 
-	HRESULT Module::CreateObject(REFCLSID rclsid, REFIID riid, void** ppv) const noexcept
-	{
-		return PIMPL_(createObjectFunc)(&rclsid, &riid, ppv);
-	}
+    HRESULT Module::CreateObject(REFCLSID rclsid, REFIID riid, void** ppv) const noexcept
+    {
+        return PIMPL_(createObjectFunc)(&rclsid, &riid, ppv);
+    }
 
-	HRESULT Module::GetNumberOfFormats(UINT32& count) const noexcept
-	{
-		return PIMPL_(getNumberOfFormatsFunc)(&count);
-	}
+    HRESULT Module::GetNumberOfFormats(UINT32& count) const noexcept
+    {
+        return PIMPL_(getNumberOfFormatsFunc)(&count);
+    }
 
-	HRESULT Module::GetFormatProperty(UINT32 index, sevenzip::HandlerPropertyId propId, PROPVARIANT& value) const noexcept
-	{
-		return PIMPL_(getFormatPropertyFunc)(index, propId, &value);
-	}
+    HRESULT Module::GetFormatProperty(UINT32 index, sevenzip::HandlerPropertyId propId, PROPVARIANT& value) const noexcept
+    {
+        return PIMPL_(getFormatPropertyFunc)(index, propId, &value);
+    }
 }

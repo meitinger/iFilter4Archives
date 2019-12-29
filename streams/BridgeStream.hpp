@@ -23,17 +23,17 @@
 
 namespace streams
 {
-	class BridgeStream; // allows 7-Zip to read from ::IStream
+    class BridgeStream; // allows 7-Zip to read from ::IStream
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	COM_CLASS_DECLARATION(BridgeStream, com::object IMPLEMENTS(sevenzip::IInStream) IMPLEMENTS(sevenzip::IStreamGetSize),
-						  COM_VISIBLE(sevenzip::IInStream, sevenzip::IStreamGetSize)
+    COM_CLASS_DECLARATION(BridgeStream, com::object IMPLEMENTS(sevenzip::IInStream) IMPLEMENTS(sevenzip::IStreamGetSize),
+                          COM_VISIBLE(sevenzip::IInStream, sevenzip::IStreamGetSize)
 public:
-	BridgeStream(IStreamPtr stream);
+    BridgeStream(IStreamPtr stream);
 
-	STDMETHOD(Read)(void* data, UINT32 size, UINT32* processedSize);
-	STDMETHOD(Seek)(INT64 offset, UINT32 seekOrigin, UINT64* newPosition);
-	STDMETHOD(GetSize)(UINT64* size);
-	);
+    STDMETHOD(Read)(void* data, UINT32 size, UINT32* processedSize);
+    STDMETHOD(Seek)(INT64 offset, UINT32 seekOrigin, UINT64* newPosition);
+    STDMETHOD(GetSize)(UINT64* size);
+    );
 }

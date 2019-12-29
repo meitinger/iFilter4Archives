@@ -25,51 +25,51 @@
 
 namespace streams
 {
-	class WriteStream; // base class, handles waiting for content availability (i.e. subfilters wait for decompress)
-	class BufferWriteStream; // uses memory for decompression
-	class FileWriteStream; // uses a temporary file for decompression
+    class WriteStream; // base class, handles waiting for content availability (i.e. subfilters wait for decompress)
+    class BufferWriteStream; // uses memory for decompression
+    class FileWriteStream; // uses a temporary file for decompression
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	COM_CLASS_DECLARATION(WriteStream, com::object IMPLEMENTS(sevenzip::ISequentialOutStream), COM_VISIBLE(sevenzip::ISequentialOutStream)
+    COM_CLASS_DECLARATION(WriteStream, com::object IMPLEMENTS(sevenzip::ISequentialOutStream), COM_VISIBLE(sevenzip::ISequentialOutStream)
 protected:
-	explicit WriteStream(const com::FileDescription& description);
+    explicit WriteStream(const com::FileDescription& description);
 
-	virtual HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept = 0;
+    virtual HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept = 0;
 
 public:
-	PROPERTY_READONLY(const com::FileDescription&, Description, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(const com::FileDescription&, Description, PIMPL_GETTER_ATTRIB);
 
-	virtual IStreamPtr OpenReadStream() const = 0;
-	void SetEndOfFile();
-	HRESULT WaitUntilAvailable(ULONGLONG size) const noexcept;
-	HRESULT WaitUntilEndOfFile() const noexcept;
-	STDMETHOD(Write)(const void* data, UINT32 size, UINT32* processedSize);
-	);
+    virtual IStreamPtr OpenReadStream() const = 0;
+    void SetEndOfFile();
+    HRESULT WaitUntilAvailable(ULONGLONG size) const noexcept;
+    HRESULT WaitUntilEndOfFile() const noexcept;
+    STDMETHOD(Write)(const void* data, UINT32 size, UINT32* processedSize);
+    );
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	COM_CLASS_DECLARATION(BufferWriteStream, WriteStream,
+    COM_CLASS_DECLARATION(BufferWriteStream, WriteStream,
 protected:
-	HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept override;
+    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept override;
 
 public:
-	explicit BufferWriteStream(const com::FileDescription& description);
+    explicit BufferWriteStream(const com::FileDescription& description);
 
-	IStreamPtr OpenReadStream() const override;
-	ULONG Read(void* buffer, ULONGLONG offset, ULONG count) const;
-	);
+    IStreamPtr OpenReadStream() const override;
+    ULONG Read(void* buffer, ULONGLONG offset, ULONG count) const;
+    );
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	COM_CLASS_DECLARATION(FileWriteStream, WriteStream,
+    COM_CLASS_DECLARATION(FileWriteStream, WriteStream,
 protected:
-	HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept override;
+    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept override;
 
 public:
-	explicit FileWriteStream(const com::FileDescription& description);
+    explicit FileWriteStream(const com::FileDescription& description);
 
-	win32::unique_handle_ptr OpenReadFile() const;
-	IStreamPtr OpenReadStream() const override;
-	);
+    win32::unique_handle_ptr OpenReadFile() const;
+    IStreamPtr OpenReadStream() const override;
+    );
 }

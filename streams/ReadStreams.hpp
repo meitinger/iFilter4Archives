@@ -25,46 +25,46 @@
 
 namespace streams
 {
-	class ReadStream; // base class, handles common ::IStream stuff
-	class BufferReadStream; // reads decompressed data from memory
-	class FileReadStream; // reads decompressed data from a temporary file
+    class ReadStream; // base class, handles common ::IStream stuff
+    class BufferReadStream; // reads decompressed data from memory
+    class FileReadStream; // reads decompressed data from a temporary file
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	COM_CLASS_DECLARATION(ReadStream, com::object IMPLEMENTS(IStream), COM_VISIBLE(IStream)
+    COM_CLASS_DECLARATION(ReadStream, com::object IMPLEMENTS(IStream), COM_VISIBLE(IStream)
 protected:
-	ReadStream(const com::FileDescription& description);
+    ReadStream(const com::FileDescription& description);
 
 public:
-	STDMETHOD(Write)(const void* pv, ULONG cb, ULONG* pcbWritten);
-	STDMETHOD(SetSize)(ULARGE_INTEGER libNewSize);
-	STDMETHOD(CopyTo)(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten);
-	STDMETHOD(Commit)(DWORD grfCommitFlags);
-	STDMETHOD(Revert)(void);
-	STDMETHOD(LockRegion)(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType);
-	STDMETHOD(UnlockRegion)(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType);
-	STDMETHOD(Stat)(STATSTG* pstatstg, DWORD grfStatFlag);
-	);
+    STDMETHOD(Write)(const void* pv, ULONG cb, ULONG* pcbWritten);
+    STDMETHOD(SetSize)(ULARGE_INTEGER libNewSize);
+    STDMETHOD(CopyTo)(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten);
+    STDMETHOD(Commit)(DWORD grfCommitFlags);
+    STDMETHOD(Revert)(void);
+    STDMETHOD(LockRegion)(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType);
+    STDMETHOD(UnlockRegion)(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType);
+    STDMETHOD(Stat)(STATSTG* pstatstg, DWORD grfStatFlag);
+    );
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	COM_CLASS_DECLARATION(BufferReadStream, ReadStream,
+    COM_CLASS_DECLARATION(BufferReadStream, ReadStream,
 public:
-	explicit BufferReadStream(const BufferWriteStream& source);
+    explicit BufferReadStream(const BufferWriteStream& source);
 
-	STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead);
-	STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition);
-	STDMETHOD(Clone)(IStream** ppstm);
-	);
+    STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead);
+    STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition);
+    STDMETHOD(Clone)(IStream** ppstm);
+    );
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	COM_CLASS_DECLARATION(FileReadStream, ReadStream,
+    COM_CLASS_DECLARATION(FileReadStream, ReadStream,
 public:
-	explicit FileReadStream(const FileWriteStream& source);
+    explicit FileReadStream(const FileWriteStream& source);
 
-	STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead);
-	STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition);
-	STDMETHOD(Clone)(IStream** ppstm);
-	);
+    STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead);
+    STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition);
+    STDMETHOD(Clone)(IStream** ppstm);
+    );
 }

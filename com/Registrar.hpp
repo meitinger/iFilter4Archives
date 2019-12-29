@@ -26,17 +26,17 @@
 
 namespace com
 {
-	class Registrar; // registers this iFilter and looks up other iFilters in the registry
+    class Registrar; // registers this iFilter and looks up other iFilters in the registry
 
 /******************************************************************************/
 
-	SIMPLE_CLASS_DECLARATION(Registrar,
+    SIMPLE_CLASS_DECLARATION(Registrar,
 public:
-	Registrar();
+    Registrar();
 
-	std::optional<CLSID> FindClsid(const std::wstring& extension) const; // extension must be lower-case and dot-prefixed
+    std::optional<CLSID> FindClsid(const std::wstring& extension) const; // extension must be lower-case and dot-prefixed
 
-	static HRESULT RegisterServer() noexcept;
-	static HRESULT UnregisterServer() noexcept;
-	);
+    static HRESULT RegisterServer() noexcept;
+    static HRESULT UnregisterServer() noexcept;
+    );
 }

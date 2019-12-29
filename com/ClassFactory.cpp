@@ -24,75 +24,75 @@
 
 namespace com
 {
-	static auto _lockCount = ULONG(0);
-	static auto _lockedFactory = IClassFactoryPtr();
-	static auto _mutex = std::mutex();
+    static auto _lockCount = ULONG(0);
+    static auto _lockedFactory = IClassFactoryPtr();
+    static auto _mutex = std::mutex();
 
-	COM_CLASS_IMPLEMENTATION(ClassFactory, );
+    COM_CLASS_IMPLEMENTATION(ClassFactory, );
 
-	ClassFactory::ClassFactory() : PIMPL_INIT() {}
+    ClassFactory::ClassFactory() : PIMPL_INIT() {}
 
-	STDMETHODIMP ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
-	{
-		COM_CHECK_POINTER_AND_SET(ppvObject, nullptr);
-		COM_NOTHROW_BEGIN;
-		com::object::CreateComInstance<Filter>(pUnkOuter, riid, *ppvObject);
-		COM_NOTHROW_END;
-		return S_OK;
-	}
+    STDMETHODIMP ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
+    {
+        COM_CHECK_POINTER_AND_SET(ppvObject, nullptr);
+        COM_NOTHROW_BEGIN;
+        com::object::CreateComInstance<Filter>(pUnkOuter, riid, *ppvObject);
+        COM_NOTHROW_END;
+        return S_OK;
+    }
 
-	STDMETHODIMP ClassFactory::LockServer(BOOL fLock)
-	{
-		COM_NOTHROW_BEGIN;
-		auto lock = std::unique_lock(_mutex);
-		if (fLock)
-		{
-			if (!_lockedFactory)
-			{
-				_lockedFactory = static_cast<IClassFactory*>(this);
-			}
-			++_lockCount;
-		}
-		else
-		{
-			if (!_lockedFactory)
-			{
-				return E_FAIL;
-			}
-			if (--_lockCount == 0)
-			{
-				_lockedFactory = nullptr;
-			}
-		}
-		COM_NOTHROW_END;
-		return S_OK;
-	}
+    STDMETHODIMP ClassFactory::LockServer(BOOL fLock)
+    {
+        COM_NOTHROW_BEGIN;
+        auto lock = std::unique_lock(_mutex);
+        if (fLock)
+        {
+            if (!_lockedFactory)
+            {
+                _lockedFactory = static_cast<IClassFactory*>(this);
+            }
+            ++_lockCount;
+        }
+        else
+        {
+            if (!_lockedFactory)
+            {
+                return E_FAIL;
+            }
+            if (--_lockCount == 0)
+            {
+                _lockedFactory = nullptr;
+            }
+        }
+        COM_NOTHROW_END;
+        return S_OK;
+    }
 
-	HRESULT ClassFactory::GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv) noexcept
-	{
-		COM_CHECK_POINTER_AND_SET(ppv, nullptr);
-		if (!IsEqualCLSID(rclsid, __uuidof(Filter)))
-		{
-			return CLASS_E_CLASSNOTAVAILABLE; // only handle com::Filter
-		}
+    HRESULT ClassFactory::GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv) noexcept
+    {
+        COM_CHECK_POINTER_AND_SET(ppv, nullptr);
+        if (!IsEqualCLSID(rclsid, __uuidof(Filter)))
+        {
+            return CLASS_E_CLASSNOTAVAILABLE; // only handle com::Filter
+        }
 
-		// get a AddRef'd copy of a possible locked factory
-		auto factory = IClassFactoryPtr();
-		COM_NOTHROW_BEGIN;
-		auto lock = std::unique_lock(_mutex);
-		factory = _lockedFactory;
-		COM_NOTHROW_END;
+        // get a AddRef'd copy of a possible locked factory
+        auto factory = IClassFactoryPtr();
+        COM_NOTHROW_BEGIN;
+        auto lock = std::unique_lock(_mutex);
+        factory = _lockedFactory;
+        COM_NOTHROW_END;
 
-		// query the existing factory, if there is one
-		if (factory)
-		{
-			return factory->QueryInterface(riid, ppv);
-		}
+        // query the existing factory, if there is one
+        if (factory)
+        {
+            return factory->QueryInterface(riid, ppv);
+        }
 
-		// create a new instance
-		COM_NOTHROW_BEGIN;
-		com::object::CreateComInstance<ClassFactory>(nullptr, riid, *ppv);
-		COM_NOTHROW_END;
-		return S_OK;
-	}
+        // create a new instance
+        COM_NOTHROW_BEGIN;
+        com::object::CreateComInstance<ClassFactory>(nullptr, riid, *ppv);
+        COM_NOTHROW_END;
+        return S_OK;
+    }
 }

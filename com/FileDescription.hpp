@@ -26,27 +26,27 @@
 
 namespace com
 {
-	class FileDescription; // stores basic information for (compressed) files 
+    class FileDescription; // stores basic information for (compressed) files 
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	SIMPLE_CLASS_DECLARATION(FileDescription,
+    SIMPLE_CLASS_DECLARATION(FileDescription,
 private:
-	FileDescription();
+    FileDescription();
 
 public:
-	PROPERTY_READONLY(const std::wstring&, Name, PIMPL_GETTER_ATTRIB);
-	PROPERTY_READONLY(const std::wstring&, Extension, const); // guaranteed to be lower-case and dot-prefixed
-	PROPERTY_READONLY(bool, IsDirectory, PIMPL_GETTER_ATTRIB);
-	PROPERTY_READONLY(ULONGLONG, Size, PIMPL_GETTER_ATTRIB);
-	PROPERTY_READONLY(bool, SizeIsValid, const noexcept);
-	PROPERTY_READONLY(FILETIME, ModificationTime, PIMPL_GETTER_ATTRIB);
-	PROPERTY_READONLY(FILETIME, CreationTime, PIMPL_GETTER_ATTRIB);
-	PROPERTY_READONLY(FILETIME, AccessTime, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(const std::wstring&, Name, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(const std::wstring&, Extension, const); // guaranteed to be lower-case and dot-prefixed
+    PROPERTY_READONLY(bool, IsDirectory, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(ULONGLONG, Size, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(bool, SizeIsValid, const noexcept);
+    PROPERTY_READONLY(FILETIME, ModificationTime, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(FILETIME, CreationTime, PIMPL_GETTER_ATTRIB);
+    PROPERTY_READONLY(FILETIME, AccessTime, PIMPL_GETTER_ATTRIB);
 
-	HRESULT ToStat(STATSTG* stat, bool includeName) const noexcept;
+    HRESULT ToStat(STATSTG* stat, bool includeName) const noexcept;
 
-	static FileDescription FromArchiveItem(sevenzip::IInArchive* archive, UINT32 index);
-	static FileDescription FromIStream(IStream* stream);
-	);
+    static FileDescription FromArchiveItem(sevenzip::IInArchive* archive, UINT32 index);
+    static FileDescription FromIStream(IStream* stream);
+    );
 }

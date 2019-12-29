@@ -41,93 +41,93 @@ _COM_SMARTPTR_TYPEDEF(IInitializeWithStream, IID_IInitializeWithStream);
 
 namespace win32
 {
-	struct CoTaskMemDeleter
-	{
-		void operator()(void* buffer) noexcept;
-	};
-	template <typename T> using unique_cotaskmem_ptr = std::unique_ptr<T, CoTaskMemDeleter>;
+    struct CoTaskMemDeleter
+    {
+        void operator()(void* buffer) noexcept;
+    };
+    template <typename T> using unique_cotaskmem_ptr = std::unique_ptr<T, CoTaskMemDeleter>;
 
-	struct propvariant : public PROPVARIANT
-	{
-		propvariant() noexcept;
-		~propvariant() noexcept;
-		propvariant(const propvariant&);
-		propvariant(propvariant&&) noexcept;
-		propvariant& operator=(const propvariant&);
-		propvariant& operator=(propvariant&&) noexcept;
-		void clear();
-	};
+    struct propvariant : public PROPVARIANT
+    {
+        propvariant() noexcept;
+        ~propvariant() noexcept;
+        propvariant(const propvariant&);
+        propvariant(propvariant&&) noexcept;
+        propvariant& operator=(const propvariant&);
+        propvariant& operator=(propvariant&&) noexcept;
+        void clear();
+    };
 }
 
 /******************************************************************************/
 
 namespace errors
 {
-	const std::error_category& com_category() noexcept;
+    const std::error_category& com_category() noexcept;
 }
 
 /******************************************************************************/
 
 namespace utils
 {
-	HRESULT hresult_from_system_error(const std::system_error&) noexcept;
+    HRESULT hresult_from_system_error(const std::system_error&) noexcept;
 }
 
 /******************************************************************************/
 
 #define COM_NOTHROW_BEGIN \
-	try \
-	{
+    try \
+    {
 
 #define COM_NOTHROW_END \
-	} \
-	catch (const std::bad_alloc&) { return E_OUTOFMEMORY; } \
-	catch (const std::system_error& e) { return utils::hresult_from_system_error(e); } \
-	catch (...) { return E_UNEXPECTED; }
+    } \
+    catch (const std::bad_alloc&) { return E_OUTOFMEMORY; } \
+    catch (const std::system_error& e) { return utils::hresult_from_system_error(e); } \
+    catch (...) { return E_UNEXPECTED; }
 
 #define COM_CHECK_ARG(check) \
-	do { \
-		if (!(check)) { return E_INVALIDARG; } \
-	} while (0)
+    do { \
+        if (!(check)) { return E_INVALIDARG; } \
+    } while (0)
 
 #define COM_CHECK_POINTER(ptr) \
-	do { \
-		if ((ptr) == nullptr) { return E_POINTER; } \
-	} while (0)
+    do { \
+        if ((ptr) == nullptr) { return E_POINTER; } \
+    } while (0)
 
 #define COM_CHECK_POINTER_AND_SET(ptr, val) \
-	do { \
-		if ((ptr) == nullptr) { return E_POINTER; } \
-		*(ptr) = (val); \
-	} while (0)
+    do { \
+        if ((ptr) == nullptr) { return E_POINTER; } \
+        *(ptr) = (val); \
+    } while (0)
 
 #define COM_CHECK_STATE(check) \
-	do { \
-		if (!(check)) { return E_NOT_VALID_STATE; } \
-	} while (0)
+    do { \
+        if (!(check)) { return E_NOT_VALID_STATE; } \
+    } while (0)
 
 #define COM_LAST_WIN32_ERROR \
-	(HRESULT_FROM_WIN32(::GetLastError()) | 0x80000000) // always ensure that it is an error
+    (HRESULT_FROM_WIN32(::GetLastError()) | 0x80000000) // always ensure that it is an error
 
 #define COM_DO_OR_THROW(op) \
-	do { \
-		const auto hr = (op); \
-		if (FAILED(hr)) { throw std::system_error(hr, errors::com_category()); } \
-	} while (0)
+    do { \
+        const auto hr = (op); \
+        if (FAILED(hr)) { throw std::system_error(hr, errors::com_category()); } \
+    } while (0)
 
 #define COM_THROW(hr) \
-	do { \
-		assert(FAILED(hr)); \
-		throw std::system_error(hr, errors::com_category()); \
-	} while (0)
+    do { \
+        assert(FAILED(hr)); \
+        throw std::system_error(hr, errors::com_category()); \
+    } while (0)
 
 #define COM_DO_OR_RETURN(op) \
-	do { \
-		const auto hr = (op); \
-		if (FAILED(hr)) { return hr; } \
-	} while (0)
+    do { \
+        const auto hr = (op); \
+        if (FAILED(hr)) { return hr; } \
+    } while (0)
 
 #define WIN32_DO_OR_RETURN(op) \
-	do { \
-		if (!(op)) { return COM_LAST_WIN32_ERROR; } \
-	} while (0)
+    do { \
+        if (!(op)) { return COM_LAST_WIN32_ERROR; } \
+    } while (0)

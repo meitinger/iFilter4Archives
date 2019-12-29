@@ -22,17 +22,17 @@
 
 namespace com
 {
-	class ClassFactory; // simple COM class factory that creates com::Filter instances
+    class ClassFactory; // simple COM class factory that creates com::Filter instances
 
-	/******************************************************************************/
+    /******************************************************************************/
 
-	COM_CLASS_DECLARATION(ClassFactory, com::object IMPLEMENTS(IClassFactory), COM_VISIBLE(IClassFactory)
+    COM_CLASS_DECLARATION(ClassFactory, com::object IMPLEMENTS(IClassFactory), COM_VISIBLE(IClassFactory)
 public:
-	ClassFactory();
+    ClassFactory();
 
-	STDMETHOD(CreateInstance)(IUnknown* pUnkOuter, REFIID riid, void** ppvObject);
-	STDMETHOD(LockServer)(BOOL fLock);
+    STDMETHOD(CreateInstance)(IUnknown* pUnkOuter, REFIID riid, void** ppvObject);
+    STDMETHOD(LockServer)(BOOL fLock);
 
-	static HRESULT GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv) noexcept;
-	);
+    static HRESULT GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv) noexcept;
+    );
 }

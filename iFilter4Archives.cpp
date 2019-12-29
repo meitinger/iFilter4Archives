@@ -23,30 +23,30 @@
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-	UNREFERENCED_PARAMETER(lpvReserved);
-	if (fdwReason == DLL_PROCESS_ATTACH)
-	{
-		DisableThreadLibraryCalls(hinstDLL);
-	}
-	return TRUE;
+    UNREFERENCED_PARAMETER(lpvReserved);
+    if (fdwReason == DLL_PROCESS_ATTACH)
+    {
+        DisableThreadLibraryCalls(hinstDLL);
+    }
+    return TRUE;
 }
 
 STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
 {
-	return com::ClassFactory::GetClassObject(rclsid, riid, ppv);
+    return com::ClassFactory::GetClassObject(rclsid, riid, ppv);
 }
 
 STDAPI DllCanUnloadNow()
 {
-	return com::object::CanUnloadNow();
+    return com::object::CanUnloadNow();
 }
 
 STDAPI DllRegisterServer()
 {
-	return com::Registrar::RegisterServer();
+    return com::Registrar::RegisterServer();
 }
 
 STDAPI DllUnregisterServer()
 {
-	return com::Registrar::UnregisterServer();
+    return com::Registrar::UnregisterServer();
 }
