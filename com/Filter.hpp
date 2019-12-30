@@ -38,7 +38,7 @@ namespace com
     /******************************************************************************/
 
     COM_CLASS_DECLARATION(Filter, com::object IMPLEMENTS(IFilter) IMPLEMENTS(IInitializeWithStream) IMPLEMENTS(IPersistStream) IMPLEMENTS(sevenzip::IArchiveExtractCallback) IMPLEMENTS(IFilter4Archives),
-                          COM_VISIBLE(IFilter, IInitializeWithStream, IPersistStream, sevenzip::IArchiveExtractCallback, IFilter4Archives)
+                          COM_VISIBLE(IFilter, IInitializeWithStream, IPersistStream, IFilter4Archives)
 public:
     Filter();
 

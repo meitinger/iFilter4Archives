@@ -18,6 +18,8 @@
 
 #include "WriteStreams.hpp"
 
+#include "settings.hpp"
+
 #include "ReadStreams.hpp"
 
 #include <algorithm>
@@ -81,9 +83,9 @@ public:
         if (PIMPL_(endOfFile)) { return E_ABORT; }
         PIMPL_LOCK_END;
 
-        // TODO ensure unknown-sized files don't exceed thresholds
+        // forward write to the actual implementation
         auto bytesWritten = DWORD(0);
-        const auto result = WriteInteral(data, size, &bytesWritten);
+        const auto result = WriteInteral(data, size, bytesWritten);
         if (processedSize != nullptr) { *processedSize = bytesWritten; }
 
         // increment the available bytes counter and notify all listeners
@@ -102,7 +104,7 @@ public:
 public:
     std::vector<BYTE> buffer;
     std::mutex m;
-    ULONGLONG bytesWritten = 0;
+    ULONGLONG totalBytesWritten = 0;
     );
 
     BufferWriteStream::BufferWriteStream(const com::FileDescription& description) : PIMPL_INIT(), base(description)
@@ -120,31 +122,56 @@ public:
         // calculate the maximum available bytes within the lock
         ULONG bytesToRead;
         PIMPL_LOCK_BEGIN(m);
-        if (offset >= PIMPL_(bytesWritten)) { return 0; }
-        bytesToRead = static_cast<ULONG>(std::min(static_cast<ULONGLONG>(count), PIMPL_(bytesWritten) - offset));
+        if (offset >= PIMPL_(totalBytesWritten)) { return 0; }
+        bytesToRead = static_cast<ULONG>(std::min(static_cast<ULONGLONG>(count), PIMPL_(totalBytesWritten) - offset));
         PIMPL_LOCK_END;
 
         std::memcpy(buffer, PIMPL_(buffer).data() + offset, bytesToRead);
         return bytesToRead;
     }
 
-    HRESULT BufferWriteStream::WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept
+    HRESULT BufferWriteStream::WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD& bytesWritten) noexcept
     {
         // calculate the writeable bytes and increment the bytes written counter within a lock
         ULONGLONG offset;
         DWORD actualBytesToWrite;
         COM_NOTHROW_BEGIN;
         PIMPL_LOCK_BEGIN(m);
-        offset = PIMPL_(bytesWritten);
-        if (offset >= PIMPL_(buffer).size()) { return E_BOUNDS; } // so 7zip was lying about the size
+        offset = PIMPL_(totalBytesWritten);
+        if (offset >= PIMPL_(buffer).size()) { return E_BOUNDS; } // so 7-Zip was lying about the size
         actualBytesToWrite = static_cast<DWORD>(std::min(PIMPL_(buffer).size() - offset, static_cast<ULONGLONG>(bytesToWrite)));
-        PIMPL_(bytesWritten) += actualBytesToWrite;
+        PIMPL_(totalBytesWritten) += actualBytesToWrite;
         PIMPL_LOCK_END;
         COM_NOTHROW_END;
 
         std::memcpy(PIMPL_(buffer).data() + offset, buffer, actualBytesToWrite);
-        *bytesWritten = actualBytesToWrite;
+        bytesWritten = actualBytesToWrite;
         return S_OK;
+    }
+
+    bool BufferWriteStream::GetAvailableMemory(ULONGLONG& availableMemory)
+    {
+        auto status = MEMORYSTATUSEX();
+        status.dwLength = sizeof(MEMORYSTATUSEX);
+        if (!::GlobalMemoryStatusEx(&status)) { return false; }
+        availableMemory = status.ullAvailVirtual;
+        const auto minAvailableMemory = settings::min_available_memory();
+        if (minAvailableMemory)
+        {
+            if (*minAvailableMemory > availableMemory)
+            {
+                availableMemory = 0;
+            }
+            else
+            {
+                availableMemory -= *minAvailableMemory;
+            }
+        }
+        else
+        {
+            availableMemory = availableMemory * 9 / 10; // always keep a bit left
+        }
+        return true;
     }
 
     /******************************************************************************/
@@ -153,23 +180,22 @@ public:
 public:
     std::filesystem::path filePath;
     win32::unique_handle_ptr fileHandle;
+    bool checkSizeLimitEachMegabyte;
+    ULONGLONG totalBytesWritten = 0;
+    ULONGLONG bytesWrittenSinceLastSizeCheck = 0;
     );
 
-    static win32::unique_handle_ptr CreateOrOpenFile(const std::filesystem::path& filePath, DWORD desiredAccess, DWORD creationDisposition)
-    {
-        auto result = win32::unique_handle_ptr();
-        auto nativeHandle = HANDLE(INVALID_HANDLE_VALUE);
-        nativeHandle = ::CreateFileW(filePath.c_str(), desiredAccess, FILE_SHARE_DELETE | FILE_SHARE_READ, nullptr, creationDisposition, FILE_ATTRIBUTE_TEMPORARY, nullptr);
-        result.reset(nativeHandle);
-        WIN32_DO_OR_THROW(nativeHandle && nativeHandle != INVALID_HANDLE_VALUE);
-        return result;
-    }
+    static const auto TempPath = utils::get_temp_path();
 
     FileWriteStream::FileWriteStream(const com::FileDescription& description) : PIMPL_INIT(), base(description)
     {
-        const auto filePath = utils::get_temp_path() / utils::get_temp_file_name();
+        const auto filePath = TempPath / utils::get_temp_file_name();
         PIMPL_(filePath) = filePath;
-        PIMPL_(fileHandle) = CreateOrOpenFile(filePath, GENERIC_WRITE, CREATE_ALWAYS);
+        auto nativeHandle = HANDLE(INVALID_HANDLE_VALUE);
+        nativeHandle = ::CreateFileW(filePath.c_str(), GENERIC_WRITE, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
+        PIMPL_(fileHandle).reset(nativeHandle);
+        WIN32_DO_OR_THROW(nativeHandle && nativeHandle != INVALID_HANDLE_VALUE);
+        PIMPL_(checkSizeLimitEachMegabyte) = !description.SizeIsValid;
         if (description.SizeIsValid)
         {
             // reserve space beforehand
@@ -182,19 +208,77 @@ public:
         }
     }
 
-    HRESULT FileWriteStream::WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept
+    HRESULT FileWriteStream::WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD& bytesWritten) noexcept
     {
-        WIN32_DO_OR_RETURN(::WriteFile(PIMPL_(fileHandle).get(), buffer, bytesToWrite, bytesWritten, nullptr));
+        if (PIMPL_(checkSizeLimitEachMegabyte))
+        {
+            if (PIMPL_(bytesWrittenSinceLastSizeCheck) > 1 * 1024 * 1024)
+            {
+                const auto maxFileSize = settings::max_file_size();
+                if (maxFileSize && PIMPL_(totalBytesWritten) > * maxFileSize) { return E_OUTOFMEMORY; } // file larger than configured limit
+                const auto minFreeDiskSpace = settings::min_free_disk_space();
+                if (minFreeDiskSpace)
+                {
+                    auto value = ULARGE_INTEGER();
+                    WIN32_DO_OR_RETURN(::GetDiskFreeSpaceExW(TempPath.c_str(), &value, nullptr, nullptr));
+                    if (value.QuadPart < *minFreeDiskSpace) { return E_OUTOFMEMORY; } // too little space left
+                }
+                PIMPL_(bytesWrittenSinceLastSizeCheck) = 0;
+            }
+        }
+        else
+        {
+            const auto bytesToWriteRemaing = Description.Size - PIMPL_(totalBytesWritten);
+            if (bytesToWrite > bytesToWriteRemaing)
+            {
+                if (bytesToWriteRemaing == 0) { return E_BOUNDS; } // so 7-Zip was lying about the size
+                bytesToWrite = static_cast<DWORD>(bytesToWriteRemaing);
+            }
+        }
+        auto const result = ::WriteFile(PIMPL_(fileHandle).get(), buffer, bytesToWrite, &bytesWritten, nullptr);
+        assert(bytesWritten <= bytesToWrite);
+        PIMPL_(totalBytesWritten) += bytesWritten;
+        PIMPL_(bytesWrittenSinceLastSizeCheck) += bytesWritten;
+        WIN32_DO_OR_RETURN(result);
         return S_OK;
     }
 
     win32::unique_handle_ptr FileWriteStream::OpenReadFile() const
     {
-        return CreateOrOpenFile(PIMPL_(filePath), GENERIC_READ, OPEN_EXISTING);
+        auto result = win32::unique_handle_ptr();
+        auto nativeHandle = HANDLE(INVALID_HANDLE_VALUE);
+        nativeHandle = ::ReOpenFile(PIMPL_(fileHandle).get(), GENERIC_READ, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, FILE_FLAG_DELETE_ON_CLOSE);
+        result.reset(nativeHandle);
+        WIN32_DO_OR_THROW(nativeHandle && nativeHandle != INVALID_HANDLE_VALUE);
+        return result;
     }
 
     IStreamPtr FileWriteStream::OpenReadStream() const
     {
         return FileReadStream::CreateComInstance<IStream>(*this);
+    }
+
+    bool FileWriteStream::GetFreeDiskSpace(ULONGLONG& freeDiskSpace)
+    {
+        auto value = ULARGE_INTEGER();
+        if (!::GetDiskFreeSpaceExW(TempPath.c_str(), &value, nullptr, nullptr)) { return false; }
+        freeDiskSpace = value.QuadPart;
+        const auto minFreeDiskSpace = settings::min_free_disk_space();
+        if (minFreeDiskSpace)
+        {
+            if (*minFreeDiskSpace > freeDiskSpace)
+            {
+                freeDiskSpace = 0;
+            }
+            else
+            {
+                freeDiskSpace -= *minFreeDiskSpace;
+            }
+        }
+        else
+        {
+            freeDiskSpace = freeDiskSpace * 9 / 10; // always keep a bit left
+        }
+        return true;
     }
 }

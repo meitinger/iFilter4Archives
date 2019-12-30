@@ -28,6 +28,8 @@
 #include "Registrar.hpp"
 #include "WriteStreams.hpp"
 
+#include <atomic>
+#include <cassert>
 #include <condition_variable>
 #include <functional>
 #include <list>
@@ -41,10 +43,12 @@ namespace com
     class ExtractCallbackForwarder : public sevenzip::IArchiveExtractCallback // ensures that 7-Zip doesn't mess with com::Filter's refcount or queries additional interfaces
     {
     private:
+        std::atomic<ULONG> _refCount = 0;
         sevenzip::IArchiveExtractCallback* const _inner;
 
     public:
         explicit ExtractCallbackForwarder(sevenzip::IArchiveExtractCallback* inner) noexcept : _inner(inner) {}
+        ~ExtractCallbackForwarder() noexcept { assert(_refCount == 0); } // check whether 7-Zip released all references
 
         STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject)
         {
@@ -56,8 +60,8 @@ namespace com
             }
             return E_NOINTERFACE;
         }
-        STDMETHOD_(ULONG, AddRef)(void) { return 1; }
-        STDMETHOD_(ULONG, Release)(void) { return 1; }
+        STDMETHOD_(ULONG, AddRef)(void) { return ++_refCount; }
+        STDMETHOD_(ULONG, Release)(void) { return --_refCount; }
         STDMETHOD(SetTotal)(UINT64 total) { return _inner->SetTotal(total); }
         STDMETHOD(SetCompleted)(const UINT64* completeValue) { return _inner->SetCompleted(completeValue); }
         STDMETHOD(GetStream)(UINT32 index, sevenzip::ISequentialOutStream** outStream, sevenzip::AskMode askExtractMode) { return _inner->GetStream(index, outStream, askExtractMode); }
@@ -124,59 +128,9 @@ public:
     }
     );
 
-    static bool GetAvailableMemory(size_t& availableMemory)
-    {
-        auto status = MEMORYSTATUSEX();
-        status.dwLength = sizeof(MEMORYSTATUSEX);
-        if (!::GlobalMemoryStatusEx(&status)) { return false; }
-        availableMemory = status.ullAvailVirtual;
-        const auto minAvailableMemory = settings::min_available_memory();
-        if (minAvailableMemory)
-        {
-            if (*minAvailableMemory > availableMemory)
-            {
-                availableMemory = 0;
-            }
-            else
-            {
-                availableMemory -= *minAvailableMemory;
-            }
-        }
-        else
-        {
-            availableMemory = availableMemory * 9 / 10; // always keep a bit left
-        }
-        return true;
-    }
-
-    static bool GetFreeDiskSpace(size_t& freeDiskSpace)
-    {
-        auto value = ULARGE_INTEGER();
-        if (!::GetDiskFreeSpaceExW(utils::get_temp_path().c_str(), &value, nullptr, nullptr)) { return false; }
-        freeDiskSpace = value.QuadPart;
-        const auto minFreeDiskSpace = settings::min_free_disk_space();
-        if (minFreeDiskSpace)
-        {
-            if (*minFreeDiskSpace > freeDiskSpace)
-            {
-                freeDiskSpace = 0;
-            }
-            else
-            {
-                freeDiskSpace -= *minFreeDiskSpace;
-            }
-        }
-        else
-        {
-            freeDiskSpace = freeDiskSpace * 9 / 10; // always keep a bit left
-        }
-        return true;
-    }
-
     static std::unique_ptr<streams::WriteStream> CreateWriteStream(FileDescription description, std::function<bool()> waiter)
     {
         // unknown sizes result in a file stream
-        // TODO limit the total size
         if (!description.SizeIsValid)
         {
             return std::make_unique<streams::FileWriteStream>(description);
@@ -192,7 +146,7 @@ public:
         if (!maxBufferSize || requiredSize <= *maxBufferSize)
         {
             auto availableMemory = size_t(0);
-            while (GetAvailableMemory(availableMemory))
+            while (streams::BufferWriteStream::GetAvailableMemory(availableMemory))
             {
                 if (availableMemory >= requiredSize)
                 {
@@ -205,7 +159,7 @@ public:
 
         // too large for memory, ensure enough free disk space
         auto freeDiskSpace = size_t(0);
-        while (GetFreeDiskSpace(freeDiskSpace))
+        while (streams::FileWriteStream::GetFreeDiskSpace(freeDiskSpace))
         {
             if (freeDiskSpace >= requiredSize)
             {

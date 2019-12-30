@@ -35,7 +35,7 @@ namespace streams
 protected:
     explicit WriteStream(const com::FileDescription& description);
 
-    virtual HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept = 0;
+    virtual HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD &bytesWritten) noexcept = 0;
 
 public:
     PROPERTY_READONLY(const com::FileDescription&, Description, PIMPL_GETTER_ATTRIB);
@@ -51,25 +51,29 @@ public:
 
     COM_CLASS_DECLARATION(BufferWriteStream, WriteStream,
 protected:
-    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept override;
+    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD &bytesWritten) noexcept override;
 
 public:
     explicit BufferWriteStream(const com::FileDescription& description);
 
     IStreamPtr OpenReadStream() const override;
     ULONG Read(void* buffer, ULONGLONG offset, ULONG count) const;
+
+    static bool GetAvailableMemory(ULONGLONG& availableMemory);
     );
 
     /******************************************************************************/
 
     COM_CLASS_DECLARATION(FileWriteStream, WriteStream,
 protected:
-    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, LPDWORD bytesWritten) noexcept override;
+    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD &bytesWritten) noexcept override;
 
 public:
     explicit FileWriteStream(const com::FileDescription& description);
 
     win32::unique_handle_ptr OpenReadFile() const;
     IStreamPtr OpenReadStream() const override;
+
+    static bool GetFreeDiskSpace(ULONGLONG& freeDiskSpace);
     );
 }
