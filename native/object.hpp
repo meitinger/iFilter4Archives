@@ -33,15 +33,15 @@ namespace com
 
     /******************************************************************************/
 
-    template <typename T, typename U>
-    inline ptrdiff_t offset_of()
+    template <typename Type, typename Interface>
+    ptrdiff_t offset_of_interface()
     {
         constexpr const auto not_null = intptr_t(8); // compiler could optimize null-pointer out
-        return reinterpret_cast<intptr_t>(static_cast<U*>(reinterpret_cast<T*>(not_null))) - not_null;
+        return reinterpret_cast<intptr_t>(static_cast<Interface*>(static_cast<Type*>(reinterpret_cast<object*>(not_null)))) - not_null;
     }
 
     template<typename T>
-    inline std::unique_ptr<com::object> make_copy(const T& other)
+    std::unique_ptr<com::object> make_copy(const T& other)
     {
         if constexpr (std::is_abstract_v<T>)
         {
@@ -53,17 +53,11 @@ namespace com
         }
     }
 
-    template<typename T, typename U, typename ...Interfaces>
-    inline object_interface_map make_interface_map(const object_interface_map& base_interface_map)
+    template<typename T, typename ...Interfaces>
+    object_interface_map make_interface_map(const object_interface_map& base_interface_map)
     {
-        auto result = object_interface_map({ {__uuidof(Interfaces), offset_of<T, Interfaces>()}... });
-        for (const auto& entry : base_interface_map)
-        {
-            if (result.find(entry.first) == result.end()) // do not override re-implemented interfaces
-            {
-                result[entry.first] = offset_of<T, U>() + entry.second; // adjust the offset
-            }
-        }
+        auto result = object_interface_map({ {__uuidof(Interfaces), offset_of_interface<T, Interfaces>()}... }); // calculate all offsets
+        result.merge(object_interface_map(base_interface_map)); // add all non-hidden base interfaces
         return result;
     }
 
@@ -76,9 +70,18 @@ namespace com
         static object& make_com(std::unique_ptr<object> object_ptr, IUnknown* outer_unknown, REFIID interface_id, void*& com_object);
 
     protected:
-        static inline const auto class_interface_map = object_interface_map({ {IID_IUnknown, offset_of<object, IUnknown>()} });
-        virtual inline const object_interface_map& interface_map() const noexcept { return object::class_interface_map; }
-        virtual inline std::unique_ptr<com::object> make_copy() const { return std::make_unique<object>(*this); }
+        static inline const auto class_interface_map = object_interface_map({ {IID_IUnknown, offset_of_interface<object, IUnknown>()} });
+        virtual const object_interface_map& interface_map() const noexcept { return object::class_interface_map; }
+        virtual std::unique_ptr<com::object> make_copy() const { return std::make_unique<object>(*this); }
+
+        template<class Type, class Interface, typename ...Args>
+        static _com_ptr_t<_com_IIID<Interface, &__uuidof(Interface)>> create_com_instance(Args&&... args)
+        {
+            static_assert(std::is_base_of_v<Interface, Type>);
+            auto ptr = _com_ptr_t<_com_IIID<Interface, &__uuidof(Interface)>>();
+            make_com(std::make_unique<Type>(std::forward<Args>(args)...), nullptr, __uuidof(Interface), *reinterpret_cast<void**>(&ptr));
+            return ptr;
+        }
 
     public:
         object() noexcept;
@@ -90,15 +93,18 @@ namespace com
 
         static HRESULT CanUnloadNow() noexcept;
 
-        template<class Q, typename ...Args> static Q& CreateComInstance(IUnknown* pUnkOuter, REFIID riid, void*& ppvObject, Args&&... args)
+        template<class Type, typename ...Args>
+        static Type& CreateComInstance(IUnknown* pUnkOuter, REFIID riid, void*& ppvObject, Args&&... args)
         {
-            return static_cast<Q&>(make_com(std::make_unique<Q>(std::forward<Args>(args)...), pUnkOuter, riid, ppvObject));
+            return static_cast<Type&>(make_com(std::make_unique<Type>(std::forward<Args>(args)...), pUnkOuter, riid, ppvObject));
         }
 
-        template<class Q> inline _com_ptr_t<_com_IIID<Q, &__uuidof(Q)>> GetComInterface() const
+        template<class Interface>
+        _com_ptr_t<_com_IIID<Interface, &__uuidof(Interface)>> GetComInterface() const
         {
-            auto ptr = _com_ptr_t<_com_IIID<Q, &__uuidof(Q)>>();
-            make_com(make_copy(), nullptr, __uuidof(Q), *reinterpret_cast<void**>(&ptr));
+
+            auto ptr = _com_ptr_t<_com_IIID<Interface, &__uuidof(Interface)>>();
+            make_com(make_copy(), nullptr, __uuidof(Interface), *reinterpret_cast<void**>(&ptr));
             return ptr;
         }
 
@@ -120,7 +126,8 @@ namespace com
         public: className& operator= (className&&) noexcept; \
         public: className(const className&) noexcept; \
         public: className& operator= (const className&) noexcept; \
-        protected: inline std::unique_ptr<com::object> make_copy() const override { return com::make_copy<className>(*this); } \
+        protected: std::unique_ptr<com::object> make_copy() const override { return com::make_copy<className>(*this); } \
+        public: template<class Interface, typename ...Args> static _com_ptr_t<_com_IIID<Interface, &__uuidof(Interface)>> CreateComInstance(Args&&... args) { return com::object::create_com_instance<className, Interface, Args...>(std::forward<Args>(args)...); } \
         private: PIMPL; \
         __VA_ARGS__ \
     }
@@ -142,8 +149,8 @@ namespace com
 /******************************************************************************/
 
 #define COM_VISIBLE(...) \
-    protected: static inline const auto class_interface_map = com::make_interface_map<type, base, __VA_ARGS__>(base::class_interface_map); \
-    protected: inline const com::object_interface_map& interface_map() const noexcept override { return type::class_interface_map; } \
-    public: inline STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject) override { return com::object::QueryInterface(riid, ppvObject); } \
-    public: inline STDMETHOD_(ULONG, AddRef)(void) override { return com::object::AddRef(); } \
-    public: inline STDMETHOD_(ULONG, Release)(void) override { return com::object::Release(); }
+    protected: static inline const auto class_interface_map = com::make_interface_map<type, __VA_ARGS__>(base::class_interface_map); \
+    protected: const com::object_interface_map& interface_map() const noexcept override { return type::class_interface_map; } \
+    public: STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject) override { return com::object::QueryInterface(riid, ppvObject); } \
+    public: STDMETHOD_(ULONG, AddRef)(void) override { return com::object::AddRef(); } \
+    public: STDMETHOD_(ULONG, Release)(void) override { return com::object::Release(); }

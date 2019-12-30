@@ -111,6 +111,29 @@ public:
         }
     }
 
+    STDMETHODIMP ReadStream::Clone(IStream** ppstm)
+    {
+        COM_CHECK_POINTER_AND_SET(ppstm, nullptr);
+
+        auto streamPtr = IStreamPtr();
+        COM_NOTHROW_BEGIN;
+
+        // get the current position
+        auto move = LARGE_INTEGER();
+        move.QuadPart = 0;
+        auto position = ULARGE_INTEGER();
+        COM_DO_OR_RETURN(Seek(move, STREAM_SEEK_CUR, &position));
+
+        // clone the stream and set its position
+        streamPtr = CloneInternal();
+        move.QuadPart = position.QuadPart;
+        COM_DO_OR_RETURN(streamPtr->Seek(move, STREAM_SEEK_SET, nullptr));
+
+        COM_NOTHROW_END;
+        *ppstm = streamPtr.Detach(); // nothing must fail afterwards
+        return S_OK;
+    }
+
     /******************************************************************************/
 
     COM_CLASS_IMPLEMENTATION(BufferReadStream,
@@ -121,6 +144,11 @@ public:
     );
 
     BufferReadStream::BufferReadStream(const BufferWriteStream& source) : PIMPL_INIT(source), base(source.Description) {}
+
+    IStreamPtr BufferReadStream::CloneInternal() const
+    {
+        return BufferReadStream::CreateComInstance<IStream>(PIMPL_(source));
+    }
 
     STDMETHODIMP BufferReadStream::Read(void* pv, ULONG cb, ULONG* pcbRead)
     {
@@ -174,21 +202,6 @@ public:
         return S_OK;
     }
 
-    STDMETHODIMP BufferReadStream::Clone(IStream** ppstm)
-    {
-        COM_CHECK_POINTER_AND_SET(ppstm, nullptr);
-        auto streamPtr = IStreamPtr();
-
-        COM_NOTHROW_BEGIN;
-        auto clonedStream = BufferReadStream(PIMPL_(source));
-        clonedStream.PIMPL_(position) = PIMPL_(position);
-        streamPtr = clonedStream.GetComInterface<IStream>();
-        COM_NOTHROW_END;
-
-        *ppstm = streamPtr.Detach(); // nothing must fail afterwards
-        return S_OK;
-    }
-
     /******************************************************************************/
 
     COM_CLASS_IMPLEMENTATION(FileReadStream,
@@ -198,24 +211,16 @@ public:
     win32::unique_handle_ptr fileHandle;
     ULONGLONG positionCache = 0;
     bool isCacheValid = false; /* better do an initial sync */
-
-    HRESULT EnsureCacheValid() noexcept
-    {
-        // ensure the position cache is invalid
-        if (!isCacheValid)
-        {
-            auto position = LARGE_INTEGER();
-            WIN32_DO_OR_RETURN(::SetFilePointerEx(fileHandle.get(), LARGE_INTEGER(), &position, FILE_CURRENT));
-            positionCache = position.QuadPart;
-            isCacheValid = true;
-        }
-        return S_OK;
-    }
     );
 
     FileReadStream::FileReadStream(const FileWriteStream& source) : PIMPL_INIT(source), base(source.Description)
     {
         PIMPL_(fileHandle) = source.OpenReadFile();
+    }
+
+    IStreamPtr FileReadStream::CloneInternal() const
+    {
+        return FileReadStream::CreateComInstance<IStream>(PIMPL_(source));
     }
 
     STDMETHODIMP FileReadStream::Read(void* pv, ULONG cb, ULONG* pcbRead)
@@ -224,7 +229,13 @@ public:
         COM_CHECK_POINTER_AND_SET(pcbRead, 0);
 
         // wait until everything is available
-        COM_DO_OR_RETURN(PIMPL_(EnsureCacheValid)());
+        if (!PIMPL_(isCacheValid))
+        {
+            auto position = LARGE_INTEGER();
+            WIN32_DO_OR_RETURN(::SetFilePointerEx(PIMPL_(fileHandle).get(), LARGE_INTEGER(), &position, FILE_CURRENT));
+            PIMPL_(positionCache) = position.QuadPart;
+            PIMPL_(isCacheValid) = true;
+        }
         COM_DO_OR_RETURN(PIMPL_(source).WaitUntilAvailable(PIMPL_(positionCache) + cb));
 
         // read and update the cache
@@ -255,6 +266,11 @@ public:
 
     STDMETHODIMP FileReadStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition)
     {
+        if (dlibMove.QuadPart == 0 && dwOrigin == STREAM_SEEK_CUR && PIMPL_(isCacheValid))
+        {
+            if (plibNewPosition != nullptr) { plibNewPosition->QuadPart = PIMPL_(positionCache); }
+            return S_OK;
+        }
         if (dwOrigin == STREAM_SEEK_END)
         {
             if (PIMPL_(source).Description.SizeIsValid)
@@ -268,7 +284,7 @@ public:
             }
         }
         auto newPosition = LARGE_INTEGER();
-        newPosition.QuadPart = plibNewPosition != nullptr ? plibNewPosition->QuadPart : PIMPL_(positionCache); // not necessary, only in exception cases
+        newPosition.QuadPart = plibNewPosition != nullptr ? plibNewPosition->QuadPart : PIMPL_(positionCache); // not really necessary
         const auto result = ::SetFilePointerEx(PIMPL_(fileHandle).get(), dlibMove, &newPosition, dwOrigin); // dwOrigin is compatible with SetFilePointerEx
         if (plibNewPosition != nullptr)
         {
@@ -277,23 +293,5 @@ public:
         PIMPL_(positionCache) = newPosition.QuadPart;
         PIMPL_(isCacheValid) = result;
         return result ? S_OK : COM_LAST_WIN32_ERROR; // last error still valid, only assignments inbetween
-    }
-
-    STDMETHODIMP FileReadStream::Clone(IStream** ppstm)
-    {
-        COM_CHECK_POINTER_AND_SET(ppstm, nullptr);
-        COM_DO_OR_RETURN(PIMPL_(EnsureCacheValid)());
-        auto streamPtr = IStreamPtr();
-
-        COM_NOTHROW_BEGIN;
-        auto position = LARGE_INTEGER();
-        position.QuadPart = PIMPL_(positionCache);
-        auto clonedStream = FileReadStream(PIMPL_(source));
-        COM_DO_OR_RETURN(clonedStream.Seek(position, SEEK_SET, nullptr));
-        streamPtr = clonedStream.GetComInterface<IStream>();
-        COM_NOTHROW_END;
-
-        *ppstm = streamPtr.Detach(); // nothing must fail afterwards
-        return S_OK;
     }
 }

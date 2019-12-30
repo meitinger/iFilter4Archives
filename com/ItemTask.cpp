@@ -62,7 +62,7 @@ public:
 
     void ItemTask::Run()
     {
-        PIMPL_(gatherer) = std::thread([*this]() // this needs to be copied, since it will either go out of scope, or worse: reused at the same stack location
+        PIMPL_(gatherer) = std::thread([PIMPL_CAPTURE]()
         {
             auto hr = S_OK;
             try

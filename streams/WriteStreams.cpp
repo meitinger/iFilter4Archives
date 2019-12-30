@@ -112,7 +112,7 @@ public:
 
     IStreamPtr BufferWriteStream::OpenReadStream() const
     {
-        return BufferReadStream(*this).GetComInterface<IStream>();
+        return BufferReadStream::CreateComInstance<IStream>(*this);
     }
 
     ULONG BufferWriteStream::Read(void* buffer, ULONGLONG offset, ULONG count) const
@@ -195,6 +195,6 @@ public:
 
     IStreamPtr FileWriteStream::OpenReadStream() const
     {
-        return FileReadStream(*this).GetComInterface<IStream>();
+        return FileReadStream::CreateComInstance<IStream>(*this);
     }
 }

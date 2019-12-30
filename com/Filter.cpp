@@ -38,6 +38,35 @@
 
 namespace com
 {
+    class ExtractCallbackForwarder : public sevenzip::IArchiveExtractCallback // ensures that 7-Zip doesn't mess with com::Filter's refcount or queries additional interfaces
+    {
+    private:
+        sevenzip::IArchiveExtractCallback* const _inner;
+
+    public:
+        explicit ExtractCallbackForwarder(sevenzip::IArchiveExtractCallback* inner) noexcept : _inner(inner) {}
+
+        STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject)
+        {
+            COM_CHECK_POINTER_AND_SET(ppvObject, nullptr);
+            if (riid == __uuidof(IUnknown) || riid == __uuidof(sevenzip::IProgress) || riid == __uuidof(sevenzip::IArchiveExtractCallback))
+            {
+                *ppvObject = this;
+                return S_OK;
+            }
+            return E_NOINTERFACE;
+        }
+        STDMETHOD_(ULONG, AddRef)(void) { return 1; }
+        STDMETHOD_(ULONG, Release)(void) { return 1; }
+        STDMETHOD(SetTotal)(UINT64 total) { return _inner->SetTotal(total); }
+        STDMETHOD(SetCompleted)(const UINT64* completeValue) { return _inner->SetCompleted(completeValue); }
+        STDMETHOD(GetStream)(UINT32 index, sevenzip::ISequentialOutStream** outStream, sevenzip::AskMode askExtractMode) { return _inner->GetStream(index, outStream, askExtractMode); }
+        STDMETHOD(PrepareOperation)(sevenzip::AskMode askExtractMode) { return _inner->PrepareOperation(askExtractMode); }
+        STDMETHOD(SetOperationResult)(sevenzip::OperationResult opRes) { return _inner->SetOperationResult(opRes); }
+    };
+
+    /******************************************************************************/
+
     COM_CLASS_IMPLEMENTATION(Filter,
                              PIMPL_DECONSTRUCTOR() { AbortAnyExtractionOrTasksAndReset(); }
 public:
@@ -230,16 +259,16 @@ public:
         PIMPL_(attributes) = FilterAttributes(grfFlags, cAttributes, aAttributes);
         PIMPL_(archive) = archive::Factory::CreateArchiveFromExtension(FileDescription::FromIStream(PIMPL_(stream)).Extension);
         const auto scanSize = UINT64(1 << 23); // taken from 7-Zip source
-        COM_DO_OR_RETURN(PIMPL_(archive)->Open(streams::BridgeStream(PIMPL_(stream)).GetComInterface<sevenzip::IInStream>(), &scanSize, nullptr));
+        COM_DO_OR_RETURN(PIMPL_(archive)->Open(streams::BridgeStream::CreateComInstance<sevenzip::IInStream>(PIMPL_(stream)), &scanSize, nullptr));
 
         // start new extractor thread and set attributes
         PIMPL_(extractionFinished) = false; // no need to sync yet
-        PIMPL_(extractor) = std::thread([this]() // since this is not an RAII object, the pointer stays valid and must not be copied, which would interfere with PIMPL_DECONSTRUCTOR
+        PIMPL_(extractor) = std::thread([PIMPL_CAPTURE, callback = this]()
         {
             try
             {
                 // try to extract everything
-                PIMPL_(archive)->Extract(nullptr, MAXUINT32, 0, GetComInterface<sevenzip::IArchiveExtractCallback>());
+                PIMPL_(archive)->Extract(nullptr, MAXUINT32, 0, &ExtractCallbackForwarder(callback));
                 PIMPL_(archive)->Close();
             }
             catch (...)

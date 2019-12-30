@@ -28,7 +28,7 @@
 #else
 #define PIMPL \
     struct impl; std::shared_ptr<impl> pImpl; \
-    inline impl* assert_pimpl() const \
+    impl* assert_pimpl() const \
     { \
         assert(pImpl); \
         return pImpl.get(); \
@@ -47,6 +47,11 @@
     }
 #define PIMPL_CONSTRUCTOR public: impl
 #define PIMPL_DECONSTRUCTOR() public: ~impl() noexcept
+#ifdef NDEBUG
+#define PIMPL_CAPTURE pImpl = pImpl.get()
+#else
+#define PIMPL_CAPTURE assert_pimpl = ([pImpl = pImpl.get()](){assert(pImpl); return pImpl;})
+#endif
 #define PIMPL_COPY(src) \
     do { \
         assert(src.pImpl); \

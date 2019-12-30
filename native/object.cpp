@@ -25,7 +25,7 @@ namespace com
 {
     static std::atomic<ULONG> _com_object_count = 0;
 
-    static inline void* offset_ptr(void* ptr, ptrdiff_t offset) noexcept
+    static void* offset_ptr(void* ptr, ptrdiff_t offset) noexcept
     {
         return reinterpret_cast<void*>(reinterpret_cast<intptr_t>(ptr) + offset);
     }

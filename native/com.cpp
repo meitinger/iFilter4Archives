@@ -30,13 +30,13 @@ namespace win32
         ::CoTaskMemFree(reinterpret_cast<LPVOID>(buffer));
     }
 
-    static inline void propvariant_move(PROPVARIANT* destination, PROPVARIANT* source) noexcept
+    static void propvariant_move(PROPVARIANT* destination, PROPVARIANT* source) noexcept
     {
         std::memcpy(destination, source, sizeof(PROPVARIANT));
         std::memset(source, 0, sizeof(PROPVARIANT));
     }
 
-    static inline void propvariant_checked_clear(PROPVARIANT* pvar) noexcept
+    static void propvariant_checked_clear(PROPVARIANT* pvar) noexcept
     {
         const auto hr = ::PropVariantClear(pvar);
         assert(SUCCEEDED(hr)); // checked that we don't leak, but ignore in NDEBUG
