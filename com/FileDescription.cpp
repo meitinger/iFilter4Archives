@@ -49,7 +49,7 @@ public:
         {
             // get the lower-case extension
             PIMPL_(extensionCache).assign(std::filesystem::path(PIMPL_(Name)).extension());
-            const auto result = _wcslwr_s(PIMPL_(extensionCache).data(), PIMPL_(extensionCache).length() + 1);
+            const auto result = _wcslwr_s(PIMPL_(extensionCache).data(), PIMPL_(extensionCache).length() + 1); // not portable, assumes data() == c_str()
             if (result != 0)
             {
                 throw std::system_error(result, std::generic_category());

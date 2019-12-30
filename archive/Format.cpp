@@ -81,7 +81,7 @@ public:
     sevenzip::IInArchivePtr Format::CreateArchive() const
     {
         auto ptr = sevenzip::IInArchivePtr();
-        COM_DO_OR_THROW(PIMPL_(Library).CreateObject(PIMPL_(clsid), __uuidof(sevenzip::IInArchive), reinterpret_cast<void**>(&ptr)));
+        COM_DO_OR_THROW(PIMPL_(Library).CreateObject(PIMPL_(clsid), __uuidof(sevenzip::IInArchive), *reinterpret_cast<void**>(&ptr)));
         if (!ptr)
         {
             // this check is done because we don't blindly trust the result of modules

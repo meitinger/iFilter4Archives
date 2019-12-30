@@ -59,15 +59,9 @@ namespace com
 
         STDMETHODIMP unknown::QueryInterface(REFIID riid, void** ppvObject)
         {
-            if (ppvObject == nullptr)
-            {
-                return E_POINTER;
-            }
+            COM_CHECK_POINTER_AND_SET(ppvObject, nullptr);
             const auto entry = _interface_map.find(riid); // not a noexcept, but operator== should never throw
-            if (entry == _interface_map.end())
-            {
-                return E_NOINTERFACE;
-            }
+            if (entry == _interface_map.end()) { return E_NOINTERFACE; }
             *ppvObject = offset_ptr(_object_ptr.get(), entry->second);
             _object_ptr->AddRef(); // important, might get forwarded to outer unknown
             return S_OK;
@@ -91,33 +85,29 @@ namespace com
 
     /******************************************************************************/
 
-    object& object::make_com(std::unique_ptr<object> object_ptr, IUnknown* outer_unknown, REFIID interface_id, void*& com_object)
+    HRESULT object::make_com(std::unique_ptr<object> object_ptr, IUnknown* outer_unknown, REFIID interface_id, void** com_object)
     {
-        if (!object_ptr) { throw std::invalid_argument("object_ptr"); }
-        auto& result = *object_ptr;
+        assert(object_ptr); // it's a private function, but do an assert anyway
+        COM_CHECK_POINTER_AND_SET(com_object, nullptr);
+
+        const auto& map = object_ptr->interface_map();
+        auto inner_object = object_ptr.get();
         if (outer_unknown != nullptr)
         {
             // aggregated, only IUnknown allowed
-            if (!::IsEqualIID(interface_id, IID_IUnknown))
-            {
-                COM_THROW(E_NOINTERFACE); // see https://docs.microsoft.com/en-us/windows/win32/com/aggregation
-            }
-            result._unknown_ptr = outer_unknown;
-            com_object = static_cast<IUnknown*>(new unknown(std::move(object_ptr), result.interface_map()));
+            if (!::IsEqualIID(interface_id, IID_IUnknown)) { return E_NOINTERFACE; } // see https://docs.microsoft.com/en-us/windows/win32/com/aggregation
+            inner_object->_unknown_ptr = outer_unknown; // all IUnknown calls are forwarded to the outer object
+            *com_object = static_cast<IUnknown*>(new unknown(std::move(object_ptr), map)); // the inner IUnknown is returned to the outer object
         }
         else
         {
             // non-aggregated, query the interface if it exists
-            const auto& map = result.interface_map();
             const auto entry = map.find(interface_id);
-            if (entry == map.end())
-            {
-                COM_THROW(E_NOINTERFACE);
-            }
-            result._unknown_ptr = static_cast<IUnknown*>(new unknown(std::move(object_ptr), result.interface_map()));
-            com_object = offset_ptr(&result, entry->second);
+            if (entry == map.end()) { return E_NOINTERFACE; }
+            inner_object->_unknown_ptr = static_cast<IUnknown*>(new unknown(std::move(object_ptr), map)); // IUnknown is handled internally
+            *com_object = offset_ptr(inner_object, entry->second); // return the pointer to the requested interface
         }
-        return result;
+        return S_OK;
     }
 
     object::object() noexcept = default;

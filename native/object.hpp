@@ -67,7 +67,7 @@ namespace com
     {
     private:
         IUnknown* _unknown_ptr = nullptr;
-        static object& make_com(std::unique_ptr<object> object_ptr, IUnknown* outer_unknown, REFIID interface_id, void*& com_object);
+        static HRESULT make_com(std::unique_ptr<object> object_ptr, IUnknown* outer_unknown, REFIID interface_id, void** com_object);
 
     protected:
         static inline const auto class_interface_map = object_interface_map({ {IID_IUnknown, offset_of_interface<object, IUnknown>()} });
@@ -79,7 +79,7 @@ namespace com
         {
             static_assert(std::is_base_of_v<Interface, Type>);
             auto ptr = _com_ptr_t<_com_IIID<Interface, &__uuidof(Interface)>>();
-            make_com(std::make_unique<Type>(std::forward<Args>(args)...), nullptr, __uuidof(Interface), *reinterpret_cast<void**>(&ptr));
+            COM_DO_OR_THROW(make_com(std::make_unique<Type>(std::forward<Args>(args)...), nullptr, __uuidof(Interface), reinterpret_cast<void**>(&ptr)));
             return ptr;
         }
 
@@ -94,17 +94,18 @@ namespace com
         static HRESULT CanUnloadNow() noexcept;
 
         template<class Type, typename ...Args>
-        static Type& CreateComInstance(IUnknown* pUnkOuter, REFIID riid, void*& ppvObject, Args&&... args)
+        static HRESULT CreateComInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject, Args&&... args) noexcept
         {
-            return static_cast<Type&>(make_com(std::make_unique<Type>(std::forward<Args>(args)...), pUnkOuter, riid, ppvObject));
+            COM_NOTHROW_BEGIN; // make_com and make_unique may throw
+            return make_com(std::make_unique<Type>(std::forward<Args>(args)...), pUnkOuter, riid, ppvObject);
+            COM_NOTHROW_END;
         }
 
         template<class Interface>
         _com_ptr_t<_com_IIID<Interface, &__uuidof(Interface)>> GetComInterface() const
         {
-
             auto ptr = _com_ptr_t<_com_IIID<Interface, &__uuidof(Interface)>>();
-            make_com(make_copy(), nullptr, __uuidof(Interface), *reinterpret_cast<void**>(&ptr));
+            COM_DO_OR_THROW(make_com(make_copy(), nullptr, __uuidof(Interface), reinterpret_cast<void**>(&ptr)));
             return ptr;
         }
 

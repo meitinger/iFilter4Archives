@@ -34,11 +34,7 @@ namespace com
 
     STDMETHODIMP ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
     {
-        COM_CHECK_POINTER_AND_SET(ppvObject, nullptr);
-        COM_NOTHROW_BEGIN;
-        com::object::CreateComInstance<Filter>(pUnkOuter, riid, *ppvObject);
-        COM_NOTHROW_END;
-        return S_OK;
+        return com::object::CreateComInstance<Filter>(pUnkOuter, riid, ppvObject);
     }
 
     STDMETHODIMP ClassFactory::LockServer(BOOL fLock)
@@ -90,9 +86,6 @@ namespace com
         }
 
         // create a new instance
-        COM_NOTHROW_BEGIN;
-        com::object::CreateComInstance<ClassFactory>(nullptr, riid, *ppv);
-        COM_NOTHROW_END;
-        return S_OK;
+        return com::object::CreateComInstance<ClassFactory>(nullptr, riid, ppv);
     }
 }

@@ -42,9 +42,9 @@ public:
 
     PIMPL_GETTER(Module, const std::filesystem::path&, Path);
 
-    HRESULT Module::CreateObject(REFCLSID rclsid, REFIID riid, void** ppv) const noexcept
+    HRESULT Module::CreateObject(REFCLSID rclsid, REFIID riid, void*& ppv) const noexcept
     {
-        return PIMPL_(createObjectFunc)(&rclsid, &riid, ppv);
+        return PIMPL_(createObjectFunc)(&rclsid, &riid, &ppv);
     }
 
     HRESULT Module::GetNumberOfFormats(UINT32& count) const noexcept
