@@ -95,7 +95,7 @@ namespace com
         if (outer_unknown != nullptr)
         {
             // aggregated, only IUnknown allowed
-            if (!::IsEqualIID(interface_id, IID_IUnknown)) { return E_NOINTERFACE; } // see https://docs.microsoft.com/en-us/windows/win32/com/aggregation
+            if (interface_id != IID_IUnknown) { return E_NOINTERFACE; } // see https://docs.microsoft.com/en-us/windows/win32/com/aggregation
             inner_object->_unknown_ptr = outer_unknown; // all IUnknown calls are forwarded to the outer object
             *com_object = static_cast<IUnknown*>(new unknown(std::move(object_ptr), map)); // the inner IUnknown is returned to the outer object
         }
