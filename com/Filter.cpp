@@ -128,6 +128,8 @@ public:
     }
     );
 
+    //----------------------------------------------------------------------------//
+
     static std::unique_ptr<streams::WriteStream> CreateWriteStream(FileDescription description, std::function<bool()> waiter)
     {
         // unknown sizes result in a file stream
@@ -173,7 +175,7 @@ public:
         return nullptr;
     }
 
-    static HRESULT EndExtractionTaskIfAny(std::optional<ItemTask>& task, HRESULT hr = E_ABORT) noexcept
+    static HRESULT EndExtractionTaskIfAny(std::optional<ItemTask>& task, HRESULT hr) noexcept
     {
         // end and clear the task if there is one
         if (!task) { return S_OK; }
@@ -198,9 +200,13 @@ public:
         }
     }
 
+    //----------------------------------------------------------------------------//
+
     Filter::Filter() : PIMPL_INIT() {}
 
-    STDMETHODIMP_(SCODE) Filter::Init(ULONG grfFlags, ULONG cAttributes, const FULLPROPSPEC* aAttributes, ULONG* pFlags) // called from Windows thread
+    //----------------------------------------------------------------------------//
+
+    STDMETHODIMP_(SCODE) Filter::Init(ULONG grfFlags, ULONG cAttributes, const FULLPROPSPEC* aAttributes, ULONG* pFlags) noexcept // called from Windows thread
     {
         COM_CHECK_ARG(cAttributes == 0 || aAttributes != nullptr); // according to doc better than E_POINTER
         COM_CHECK_POINTER_AND_SET(pFlags, 0);
@@ -219,10 +225,11 @@ public:
         PIMPL_(extractionFinished) = false; // no need to sync yet
         PIMPL_(extractor) = std::thread([PIMPL_CAPTURE, callback = this]()
         {
+            auto result = E_ABORT;
             try
             {
                 // try to extract everything
-                PIMPL_(archive)->Extract(nullptr, MAXUINT32, 0, &ExtractCallbackForwarder(callback));
+                result = PIMPL_(archive)->Extract(nullptr, MAXUINT32, 0, &ExtractCallbackForwarder(callback));
                 PIMPL_(archive)->Close();
             }
             catch (...)
@@ -231,7 +238,7 @@ public:
             }
 
             // necessary if 7-Zip formats don't call SetOperationResult, this must succeed to avoid deadlocks
-            COM_DO_OR_THROW(EndExtractionTaskIfAny(PIMPL_(currentExtractTask)));
+            COM_DO_OR_THROW(EndExtractionTaskIfAny(PIMPL_(currentExtractTask), result));
 
             // signal finished
             PIMPL_LOCK_BEGIN(m);
@@ -243,7 +250,7 @@ public:
         return S_OK;
     }
 
-    STDMETHODIMP_(SCODE) Filter::GetChunk(STAT_CHUNK* pStat) // called from Windows thread
+    STDMETHODIMP_(SCODE) Filter::GetChunk(STAT_CHUNK* pStat) noexcept // called from Windows thread
     {
         COM_NOTHROW_BEGIN;
 
@@ -276,17 +283,21 @@ public:
         COM_NOTHROW_END;
     }
 
-    STDMETHODIMP_(SCODE) Filter::GetText(ULONG* pcwcBuffer, WCHAR* awcBuffer) // called from Windows thread
+    STDMETHODIMP_(SCODE) Filter::GetText(ULONG* pcwcBuffer, WCHAR* awcBuffer) noexcept // called from Windows thread
     {
         return PIMPL_(currentChunk) ? PIMPL_(currentChunk)->GetText(pcwcBuffer, awcBuffer) : FILTER_E_NO_MORE_TEXT;
     }
 
-    STDMETHODIMP_(SCODE) Filter::GetValue(PROPVARIANT** ppPropValue) // called from Windows thread
+    STDMETHODIMP_(SCODE) Filter::GetValue(PROPVARIANT** ppPropValue) noexcept // called from Windows thread
     {
         return PIMPL_(currentChunk) ? PIMPL_(currentChunk)->GetValue(ppPropValue) : FILTER_E_NO_MORE_VALUES;
     }
 
-    STDMETHODIMP Filter::Initialize(IStream* pstream, DWORD grfMode) // called from Windows thread
+    STDMETHODIMP_(SCODE) Filter::BindRegion(FILTERREGION origPos, REFIID riid, void** ppunk) noexcept { return E_NOTIMPL; } // see iFilter docs
+
+    //----------------------------------------------------------------------------//
+
+    STDMETHODIMP Filter::Initialize(IStream* pstream, DWORD grfMode) noexcept // called from Windows thread
     {
         COM_CHECK_POINTER(pstream);
         COM_CHECK_ARG(grfMode == STGM_READ || grfMode == STGM_READWRITE);
@@ -295,27 +306,57 @@ public:
         return S_OK;
     }
 
-    STDMETHODIMP Filter::GetClassID(CLSID* pClassID) // called from Windows thread
+    //----------------------------------------------------------------------------//
+
+    STDMETHODIMP Filter::GetClassID(CLSID* pClassID) noexcept // called from Windows thread
     {
         COM_CHECK_POINTER_AND_SET(pClassID, __uuidof(Filter));
         return S_OK;
     }
 
-    STDMETHODIMP Filter::Load(IStream* pStm) // called from the Windows thread
+    STDMETHODIMP Filter::IsDirty(void) noexcept { return E_NOTIMPL; } // see iFilter docs
+
+    //----------------------------------------------------------------------------//
+
+    STDMETHODIMP Filter::Load(IStream* pStm) noexcept // called from the Windows thread
     {
         COM_CHECK_POINTER(pStm);
         PIMPL_(stream) = pStm; // will call AddRef and release the old one
         return S_OK;
     }
 
-    STDMETHODIMP Filter::GetStream(UINT32 index, sevenzip::ISequentialOutStream** outStream, sevenzip::AskMode askExtractMode) // called from extraction thread
+    STDMETHODIMP Filter::Save(IStream* pStm, BOOL fClearDirty) noexcept { return E_NOTIMPL; } // see iFilter docs
+
+    STDMETHODIMP Filter::GetSizeMax(ULARGE_INTEGER* pcbSize) noexcept { return E_NOTIMPL; } // see iFilter docs
+
+    //----------------------------------------------------------------------------//
+
+    STDMETHODIMP Filter::Load(LPCOLESTR pszFileName, DWORD dwMode) noexcept
+    {
+#pragma comment(lib, "Shlwapi")
+        return ::SHCreateStreamOnFileEx(pszFileName, dwMode, FILE_ATTRIBUTE_READONLY, false, nullptr, &PIMPL_(stream));
+    }
+
+    STDMETHODIMP Filter::Save(LPCOLESTR pszFileName, BOOL fRemember) noexcept { return E_NOTIMPL; } // see iFilter docs
+
+    STDMETHODIMP Filter::SaveCompleted(LPCOLESTR pszFileName) noexcept { return E_NOTIMPL; } // see iFilter docs
+
+    STDMETHODIMP Filter::GetCurFile(LPOLESTR* ppszFileName) noexcept { return E_NOTIMPL; } // see iFilter docs
+
+    //----------------------------------------------------------------------------//
+
+    STDMETHODIMP Filter::SetTotal(UINT64 total) noexcept { return S_OK; } // no status needed
+
+    STDMETHODIMP Filter::SetCompleted(const UINT64* completeValue) noexcept { return S_OK; } // no status needed
+
+    STDMETHODIMP Filter::GetStream(UINT32 index, sevenzip::ISequentialOutStream** outStream, sevenzip::AskMode askExtractMode) noexcept // called from extraction thread
     {
         COM_CHECK_POINTER_AND_SET(outStream, nullptr); // if we return S_OK with outStream set to NULL the entry is skipped
         COM_CHECK_ARG(askExtractMode == sevenzip::AskMode::Extract); // this should never be
         COM_CHECK_STATE(PIMPL_(attributes) && PIMPL_(archive)); // ensure all required members are set
 
         // there shouldn't be any pending task (if 7-Zip calls SetOperationResult), but make sure anyway
-        COM_DO_OR_RETURN(EndExtractionTaskIfAny(PIMPL_(currentExtractTask)));
+        COM_DO_OR_RETURN(EndExtractionTaskIfAny(PIMPL_(currentExtractTask), E_ABORT));
 
         // reserve the com pointer and enter nothrow
         auto streamPtr = sevenzip::ISequentialOutStreamPtr();
@@ -363,24 +404,20 @@ public:
         return S_OK;
     }
 
-    STDMETHODIMP Filter::SetOperationResult(sevenzip::OperationResult opRes) // called from extraction thread
+    STDMETHODIMP Filter::PrepareOperation(sevenzip::AskMode askExtractMode) noexcept { return S_OK; } // result not always used
+
+    STDMETHODIMP Filter::SetOperationResult(sevenzip::OperationResult opRes) noexcept // called from extraction thread
     {
         return EndExtractionTaskIfAny(PIMPL_(currentExtractTask), TranslateOperationResult(opRes));
     }
 
-    STDMETHODIMP Filter::SetRecursionDepth(ULONG depth)
+    //----------------------------------------------------------------------------//
+
+    STDMETHODIMP Filter::SetRecursionDepth(ULONG depth) noexcept
     {
         PIMPL_(recursionDepth) = depth;
         return S_OK;
     }
-
-    STDMETHODIMP Filter::SetTotal(UINT64 total) { return S_OK; } // no status needed
-    STDMETHODIMP Filter::SetCompleted(const UINT64* completeValue) { return S_OK; } // no status needed
-    STDMETHODIMP Filter::PrepareOperation(sevenzip::AskMode askExtractMode) { return S_OK; } // result not always used
-    STDMETHODIMP Filter::IsDirty(void) { return E_NOTIMPL; } // see iFilter docs
-    STDMETHODIMP Filter::Save(IStream* pStm, BOOL fClearDirty) { return E_NOTIMPL; } // see iFilter docs
-    STDMETHODIMP Filter::GetSizeMax(ULARGE_INTEGER* pcbSize) { return E_NOTIMPL; } // see iFilter docs
-    STDMETHODIMP_(SCODE) Filter::BindRegion(FILTERREGION origPos, REFIID riid, void** ppunk) { return E_NOTIMPL; } // see iFilter docs
 
     /******************************************************************************/
 

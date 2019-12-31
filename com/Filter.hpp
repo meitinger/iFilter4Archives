@@ -37,32 +37,40 @@ namespace com
 
     /******************************************************************************/
 
-    COM_CLASS_DECLARATION(Filter, com::object IMPLEMENTS(IFilter) IMPLEMENTS(IInitializeWithStream) IMPLEMENTS(IPersistStream) IMPLEMENTS(sevenzip::IArchiveExtractCallback) IMPLEMENTS(IFilter4Archives),
-                          COM_VISIBLE(IFilter, IInitializeWithStream, IPersistStream, IFilter4Archives)
+    COM_CLASS_DECLARATION(Filter, com::object
+                          IMPLEMENTS(IFilter) IMPLEMENTS(IInitializeWithStream) IMPLEMENTS(IPersistStream) IMPLEMENTS(IPersistFile)
+                          IMPLEMENTS(sevenzip::IArchiveExtractCallback) IMPLEMENTS(IFilter4Archives),
+                          COM_VISIBLE(IFilter, IInitializeWithStream, IPersistStream, IPersistFile, IFilter4Archives)
 public:
     Filter();
 
-    STDMETHOD_(SCODE, Init)(ULONG grfFlags, ULONG cAttributes, const FULLPROPSPEC* aAttributes, ULONG* pFlags);
-    STDMETHOD_(SCODE, GetChunk)(STAT_CHUNK* pStat);
-    STDMETHOD_(SCODE, GetText)(ULONG* pcwcBuffer, WCHAR* awcBuffer);
-    STDMETHOD_(SCODE, GetValue)(PROPVARIANT** ppPropValue);
-    STDMETHOD_(SCODE, BindRegion)(FILTERREGION origPos, REFIID riid, void** ppunk);
+    STDMETHOD_(SCODE, Init)(ULONG grfFlags, ULONG cAttributes, const FULLPROPSPEC* aAttributes, ULONG* pFlags) noexcept override; // IFilter
+    STDMETHOD_(SCODE, GetChunk)(STAT_CHUNK* pStat) noexcept override; // IFilter
+    STDMETHOD_(SCODE, GetText)(ULONG* pcwcBuffer, WCHAR* awcBuffer) noexcept override; // IFilter
+    STDMETHOD_(SCODE, GetValue)(PROPVARIANT** ppPropValue) noexcept override; // IFilter
+    STDMETHOD_(SCODE, BindRegion)(FILTERREGION origPos, REFIID riid, void** ppunk) noexcept override; // IFilter
 
-    STDMETHOD(Initialize)(IStream* pstream, DWORD grfMode);
+    STDMETHOD(Initialize)(IStream* pstream, DWORD grfMode) noexcept override; // IInitializeWithStream
 
-    STDMETHOD(GetClassID)(CLSID* pClassID);
-    STDMETHOD(IsDirty)(void);
-    STDMETHOD(Load)(IStream* pStm);
-    STDMETHOD(Save)(IStream* pStm, BOOL fClearDirty);
-    STDMETHOD(GetSizeMax)(ULARGE_INTEGER* pcbSize);
+    STDMETHOD(GetClassID)(CLSID* pClassID) noexcept override; // IPersist
+    STDMETHOD(IsDirty)(void) noexcept override; // IPersistStream & IPersistFile
 
-    STDMETHOD(SetTotal)(UINT64 total);
-    STDMETHOD(SetCompleted)(const UINT64* completeValue);
-    STDMETHOD(GetStream)(UINT32 index, sevenzip::ISequentialOutStream** outStream, sevenzip::AskMode askExtractMode);
-    STDMETHOD(PrepareOperation)(sevenzip::AskMode askExtractMode);
-    STDMETHOD(SetOperationResult)(sevenzip::OperationResult opRes);
+    STDMETHOD(Load)(IStream* pStm) noexcept override; // IPersistStream
+    STDMETHOD(Save)(IStream* pStm, BOOL fClearDirty) noexcept override; // IPersistStream
+    STDMETHOD(GetSizeMax)(ULARGE_INTEGER* pcbSize) noexcept override; // IPersistStream
 
-    STDMETHOD(SetRecursionDepth)(ULONG depth);
+    STDMETHOD(Load)(LPCOLESTR pszFileName, DWORD dwMode) noexcept override; // IPersistFile
+    STDMETHOD(Save)(LPCOLESTR pszFileName, BOOL fRemember) noexcept override; // IPersistFile
+    STDMETHOD(SaveCompleted)(LPCOLESTR pszFileName) noexcept override; // IPersistFile
+    STDMETHOD(GetCurFile)(LPOLESTR* ppszFileName) noexcept override; // IPersistFile
+
+    STDMETHOD(SetTotal)(UINT64 total) noexcept override; // IProgress
+    STDMETHOD(SetCompleted)(const UINT64* completeValue) noexcept override; // IProgress
+    STDMETHOD(GetStream)(UINT32 index, sevenzip::ISequentialOutStream** outStream, sevenzip::AskMode askExtractMode) noexcept override; // IArchiveExtractCallback
+    STDMETHOD(PrepareOperation)(sevenzip::AskMode askExtractMode) noexcept override; // IArchiveExtractCallback
+    STDMETHOD(SetOperationResult)(sevenzip::OperationResult opRes) noexcept override; // IArchiveExtractCallback
+
+    STDMETHOD(SetRecursionDepth)(ULONG depth) noexcept override; // IFilter4Archives
     );
 
     /******************************************************************************/

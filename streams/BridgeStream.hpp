@@ -32,8 +32,8 @@ namespace streams
 public:
     BridgeStream(IStreamPtr stream);
 
-    STDMETHOD(Read)(void* data, UINT32 size, UINT32* processedSize);
-    STDMETHOD(Seek)(INT64 offset, UINT32 seekOrigin, UINT64* newPosition);
-    STDMETHOD(GetSize)(UINT64* size);
+    STDMETHOD(Read)(void* data, UINT32 size, UINT32* processedSize) noexcept override;
+    STDMETHOD(Seek)(INT64 offset, UINT32 seekOrigin, UINT64* newPosition) noexcept override;
+    STDMETHOD(GetSize)(UINT64* size) noexcept override;
     );
 }

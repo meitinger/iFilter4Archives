@@ -30,8 +30,8 @@ namespace com
 public:
     ClassFactory();
 
-    STDMETHOD(CreateInstance)(IUnknown* pUnkOuter, REFIID riid, void** ppvObject);
-    STDMETHOD(LockServer)(BOOL fLock);
+    STDMETHOD(CreateInstance)(IUnknown* pUnkOuter, REFIID riid, void** ppvObject) noexcept override;
+    STDMETHOD(LockServer)(BOOL fLock) noexcept override;
 
     static HRESULT GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv) noexcept;
     );

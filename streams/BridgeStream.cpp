@@ -33,14 +33,14 @@ public:
         PIMPL_(stream) = stream;
     }
 
-    STDMETHODIMP BridgeStream::Read(void* data, UINT32 size, UINT32* processedSize)
+    STDMETHODIMP BridgeStream::Read(void* data, UINT32 size, UINT32* processedSize) noexcept
     {
         COM_CHECK_POINTER(data);
         COM_CHECK_POINTER_AND_SET(processedSize, 0);
         return PIMPL_(stream)->Read(data, size, reinterpret_cast<ULONG*>(processedSize));
     }
 
-    STDMETHODIMP BridgeStream::Seek(INT64 offset, UINT32 seekOrigin, UINT64* newPosition)
+    STDMETHODIMP BridgeStream::Seek(INT64 offset, UINT32 seekOrigin, UINT64* newPosition) noexcept
     {
         auto liOffset = LARGE_INTEGER();
         liOffset.QuadPart = offset;
@@ -58,7 +58,7 @@ public:
         }
     }
 
-    STDMETHODIMP BridgeStream::GetSize(UINT64* size)
+    STDMETHODIMP BridgeStream::GetSize(UINT64* size) noexcept
     {
         COM_CHECK_POINTER_AND_SET(size, 0);
         auto stat = STATSTG();

@@ -72,7 +72,7 @@ public:
         return S_OK;
     }
 
-    STDMETHODIMP WriteStream::Write(const void* data, UINT32 size, UINT32* processedSize)
+    STDMETHODIMP WriteStream::Write(const void* data, UINT32 size, UINT32* processedSize) noexcept
     {
         COM_CHECK_POINTER(data);
         if (processedSize != nullptr) { *processedSize = 0; }

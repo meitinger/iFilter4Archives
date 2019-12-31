@@ -32,12 +32,12 @@ namespace com
 
     ClassFactory::ClassFactory() : PIMPL_INIT() {}
 
-    STDMETHODIMP ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
+    STDMETHODIMP ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject) noexcept
     {
         return com::object::CreateComInstance<Filter>(pUnkOuter, riid, ppvObject);
     }
 
-    STDMETHODIMP ClassFactory::LockServer(BOOL fLock)
+    STDMETHODIMP ClassFactory::LockServer(BOOL fLock) noexcept
     {
         COM_NOTHROW_BEGIN;
         auto lock = std::unique_lock(_mutex);

@@ -31,18 +31,18 @@ public:
 
     ReadStream::ReadStream(const com::FileDescription& description) : PIMPL_INIT(description) {}
 
-    STDMETHODIMP ReadStream::Write(const void* pv, ULONG cb, ULONG* pcbWritten)
+    STDMETHODIMP ReadStream::Write(const void* pv, ULONG cb, ULONG* pcbWritten) noexcept
     {
         if (pcbWritten != nullptr) { *pcbWritten = 0; }
         return STG_E_ACCESSDENIED;
     }
 
-    STDMETHODIMP ReadStream::SetSize(ULARGE_INTEGER libNewSize)
+    STDMETHODIMP ReadStream::SetSize(ULARGE_INTEGER libNewSize) noexcept
     {
         return E_NOTIMPL;
     }
 
-    STDMETHODIMP ReadStream::CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten)
+    STDMETHODIMP ReadStream::CopyTo(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) noexcept
     {
         COM_CHECK_POINTER(pstm);
         if (pcbRead != nullptr) { pcbRead->QuadPart = 0; }
@@ -72,27 +72,27 @@ public:
         return S_OK;
     }
 
-    STDMETHODIMP ReadStream::Commit(DWORD grfCommitFlags)
+    STDMETHODIMP ReadStream::Commit(DWORD grfCommitFlags) noexcept
     {
         return E_NOTIMPL;
     }
 
-    STDMETHODIMP ReadStream::Revert(void)
+    STDMETHODIMP ReadStream::Revert(void) noexcept
     {
         return E_NOTIMPL;
     }
 
-    STDMETHODIMP ReadStream::LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType)
+    STDMETHODIMP ReadStream::LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) noexcept
     {
         return E_NOTIMPL;
     }
 
-    STDMETHODIMP ReadStream::UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType)
+    STDMETHODIMP ReadStream::UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) noexcept
     {
         return E_NOTIMPL;
     }
 
-    STDMETHODIMP ReadStream::Stat(STATSTG* pstatstg, DWORD grfStatFlag)
+    STDMETHODIMP ReadStream::Stat(STATSTG* pstatstg, DWORD grfStatFlag) noexcept
     {
         COM_CHECK_POINTER(pstatstg);
         std::memset(pstatstg, 0, sizeof(STATSTG));
@@ -111,7 +111,7 @@ public:
         }
     }
 
-    STDMETHODIMP ReadStream::Clone(IStream** ppstm)
+    STDMETHODIMP ReadStream::Clone(IStream** ppstm) noexcept
     {
         COM_CHECK_POINTER_AND_SET(ppstm, nullptr);
 
@@ -150,7 +150,7 @@ public:
         return BufferReadStream::CreateComInstance<IStream>(PIMPL_(source));
     }
 
-    STDMETHODIMP BufferReadStream::Read(void* pv, ULONG cb, ULONG* pcbRead)
+    STDMETHODIMP BufferReadStream::Read(void* pv, ULONG cb, ULONG* pcbRead) noexcept
     {
         COM_CHECK_POINTER(pv);
         COM_CHECK_POINTER_AND_SET(pcbRead, 0);
@@ -162,7 +162,7 @@ public:
         return *pcbRead == 0 ? S_FALSE : S_OK;
     }
 
-    STDMETHODIMP BufferReadStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition)
+    STDMETHODIMP BufferReadStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) noexcept
     {
         if (plibNewPosition != nullptr) { plibNewPosition->QuadPart = PIMPL_(position); }
 
@@ -223,7 +223,7 @@ public:
         return FileReadStream::CreateComInstance<IStream>(PIMPL_(source));
     }
 
-    STDMETHODIMP FileReadStream::Read(void* pv, ULONG cb, ULONG* pcbRead)
+    STDMETHODIMP FileReadStream::Read(void* pv, ULONG cb, ULONG* pcbRead) noexcept
     {
         COM_CHECK_POINTER(pv);
         COM_CHECK_POINTER_AND_SET(pcbRead, 0);
@@ -264,7 +264,7 @@ public:
         return S_OK;
     }
 
-    STDMETHODIMP FileReadStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition)
+    STDMETHODIMP FileReadStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) noexcept
     {
         if (dlibMove.QuadPart == 0 && dwOrigin == STREAM_SEEK_CUR && PIMPL_(isCacheValid))
         {

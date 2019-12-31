@@ -35,7 +35,7 @@ namespace streams
 protected:
     explicit WriteStream(const com::FileDescription& description);
 
-    virtual HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD &bytesWritten) noexcept = 0;
+    virtual HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD& bytesWritten) noexcept = 0;
 
 public:
     PROPERTY_READONLY(const com::FileDescription&, Description, PIMPL_GETTER_ATTRIB);
@@ -44,14 +44,14 @@ public:
     void SetEndOfFile();
     HRESULT WaitUntilAvailable(ULONGLONG size) const noexcept;
     HRESULT WaitUntilEndOfFile() const noexcept;
-    STDMETHOD(Write)(const void* data, UINT32 size, UINT32* processedSize);
+    STDMETHOD(Write)(const void* data, UINT32 size, UINT32* processedSize) noexcept override;
     );
 
     /******************************************************************************/
 
     COM_CLASS_DECLARATION(BufferWriteStream, WriteStream,
 protected:
-    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD &bytesWritten) noexcept override;
+    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD& bytesWritten) noexcept override;
 
 public:
     explicit BufferWriteStream(const com::FileDescription& description);
@@ -66,7 +66,7 @@ public:
 
     COM_CLASS_DECLARATION(FileWriteStream, WriteStream,
 protected:
-    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD &bytesWritten) noexcept override;
+    HRESULT WriteInteral(LPCVOID buffer, DWORD bytesToWrite, DWORD& bytesWritten) noexcept override;
 
 public:
     explicit FileWriteStream(const com::FileDescription& description);

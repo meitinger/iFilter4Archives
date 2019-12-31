@@ -38,15 +38,15 @@ protected:
     virtual IStreamPtr CloneInternal() const = 0;
 
 public:
-    STDMETHOD(Write)(const void* pv, ULONG cb, ULONG* pcbWritten);
-    STDMETHOD(SetSize)(ULARGE_INTEGER libNewSize);
-    STDMETHOD(CopyTo)(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten);
-    STDMETHOD(Commit)(DWORD grfCommitFlags);
-    STDMETHOD(Revert)(void);
-    STDMETHOD(LockRegion)(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType);
-    STDMETHOD(UnlockRegion)(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType);
-    STDMETHOD(Stat)(STATSTG* pstatstg, DWORD grfStatFlag);
-    STDMETHOD(Clone)(IStream** ppstm);
+    STDMETHOD(Write)(const void* pv, ULONG cb, ULONG* pcbWritten) noexcept override;
+    STDMETHOD(SetSize)(ULARGE_INTEGER libNewSize) noexcept override;
+    STDMETHOD(CopyTo)(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) noexcept override;
+    STDMETHOD(Commit)(DWORD grfCommitFlags) noexcept override;
+    STDMETHOD(Revert)(void) noexcept override;
+    STDMETHOD(LockRegion)(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) noexcept override;
+    STDMETHOD(UnlockRegion)(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) noexcept override;
+    STDMETHOD(Stat)(STATSTG* pstatstg, DWORD grfStatFlag) noexcept override;
+    STDMETHOD(Clone)(IStream** ppstm) noexcept override;
     );
 
     /******************************************************************************/
@@ -58,8 +58,8 @@ protected:
 public:
     explicit BufferReadStream(const BufferWriteStream& source);
 
-    STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead);
-    STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition);
+    STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead) noexcept override;
+    STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) noexcept override;
     );
 
     /******************************************************************************/
@@ -71,7 +71,7 @@ protected:
 public:
     explicit FileReadStream(const FileWriteStream& source);
 
-    STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead);
-    STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition);
+    STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead) noexcept override;
+    STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) noexcept override;
     );
 }
