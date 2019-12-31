@@ -203,6 +203,9 @@ public:
         COM_CHECK_ARG(cAttributes == 0 || aAttributes != nullptr); // according to doc better than E_POINTER
         COM_CHECK_POINTER_AND_SET(pFlags, 0);
         if (!PIMPL_(stream)) { return E_FAIL; } // according to doc
+        auto position = LARGE_INTEGER();
+        position.QuadPart = 0;
+        COM_DO_OR_RETURN(PIMPL_(stream)->Seek(position, STREAM_SEEK_SET, nullptr)); // rewind the stream (necessary for iFiltTst)
 
         COM_NOTHROW_BEGIN;
         PIMPL_(AbortAnyExtractionOrTasksAndReset)(); // according to ATL, this method might be called multiple times, so stop any running extraction
