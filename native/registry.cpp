@@ -177,12 +177,9 @@ namespace win32
         );
         switch (error_code)
         {
-        case ERROR_SUCCESS:
-            return dword_value;
-        case ERROR_FILE_NOT_FOUND:
-            return std::nullopt;
-        default:
-            throw errors::registry_error(_path, name, error_code);
+        case ERROR_SUCCESS: return dword_value;
+        case ERROR_FILE_NOT_FOUND: return std::nullopt;
+        default: throw errors::registry_error(_path, name, error_code);
         }
     }
 
@@ -204,15 +201,12 @@ namespace win32
             );
             switch (error_code)
             {
-            case ERROR_SUCCESS:
-                return std::wstring(string_buffer.data(), (size_including_null_terminator / sizeof(WCHAR)) - 1);
+            case ERROR_SUCCESS: return std::wstring(string_buffer.data(), (size_including_null_terminator / sizeof(WCHAR)) - 1);
             case ERROR_MORE_DATA:
                 string_buffer.resize(size_including_null_terminator / sizeof(WCHAR));
                 continue;
-            case ERROR_FILE_NOT_FOUND:
-                return std::nullopt;
-            default:
-                throw errors::registry_error(_path, name, error_code);
+            case ERROR_FILE_NOT_FOUND: return std::nullopt;
+            default: throw errors::registry_error(_path, name, error_code);
             }
         }
     }

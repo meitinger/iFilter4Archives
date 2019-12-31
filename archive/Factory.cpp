@@ -56,19 +56,12 @@ public:
 
     static void LoadAllModules(Factory::FormatsCollection& formats, const std::filesystem::path& directory)
     {
-        // ensure the argument is a directory
-        if (!std::filesystem::is_directory(directory))
-        {
-            return;
-        }
+        if (!std::filesystem::is_directory(directory)) { return; } // ensure the argument is a directory
         for (const auto& entry : std::filesystem::directory_iterator(directory))
         {
             // only load dlls (I can't believe I have to resort to _wcsnicmp in C++)
             const auto& path = entry.path();
-            if (entry.is_directory() || _wcsnicmp(path.extension().c_str(), L".dll", MAXSIZE_T))
-            {
-                continue;
-            }
+            if (entry.is_directory() || _wcsnicmp(path.extension().c_str(), L".dll", MAXSIZE_T)) { continue; }
 
             // ignore errors
             try { LoadModule(formats, path); }
@@ -97,10 +90,7 @@ public:
     {
         const auto& formats = GetInstance().Formats;
         const auto formatEntry = formats.find(extension);
-        if (formatEntry == formats.end())
-        {
-            COM_THROW(FILTER_E_UNKNOWNFORMAT);
-        }
+        if (formatEntry == formats.end()) { COM_THROW(FILTER_E_UNKNOWNFORMAT); }
         return formatEntry->second.CreateArchive();
     }
 }

@@ -50,7 +50,7 @@ namespace com
         explicit ExtractCallbackForwarder(sevenzip::IArchiveExtractCallback* inner) noexcept : _inner(inner) {}
         ~ExtractCallbackForwarder() noexcept { assert(_refCount == 0); } // check whether 7-Zip released all references
 
-        STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject)
+        STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject) noexcept override
         {
             COM_CHECK_POINTER_AND_SET(ppvObject, nullptr);
             if (riid == __uuidof(IUnknown) || riid == __uuidof(sevenzip::IProgress) || riid == __uuidof(sevenzip::IArchiveExtractCallback))
@@ -60,13 +60,13 @@ namespace com
             }
             return E_NOINTERFACE;
         }
-        STDMETHOD_(ULONG, AddRef)(void) { return ++_refCount; }
-        STDMETHOD_(ULONG, Release)(void) { return --_refCount; }
-        STDMETHOD(SetTotal)(UINT64 total) { return _inner->SetTotal(total); }
-        STDMETHOD(SetCompleted)(const UINT64* completeValue) { return _inner->SetCompleted(completeValue); }
-        STDMETHOD(GetStream)(UINT32 index, sevenzip::ISequentialOutStream** outStream, sevenzip::AskMode askExtractMode) { return _inner->GetStream(index, outStream, askExtractMode); }
-        STDMETHOD(PrepareOperation)(sevenzip::AskMode askExtractMode) { return _inner->PrepareOperation(askExtractMode); }
-        STDMETHOD(SetOperationResult)(sevenzip::OperationResult opRes) { return _inner->SetOperationResult(opRes); }
+        STDMETHOD_(ULONG, AddRef)(void) noexcept override { return ++_refCount; }
+        STDMETHOD_(ULONG, Release)(void) noexcept override { return --_refCount; }
+        STDMETHOD(SetTotal)(UINT64 total) noexcept override { return _inner->SetTotal(total); }
+        STDMETHOD(SetCompleted)(const UINT64* completeValue) noexcept override { return _inner->SetCompleted(completeValue); }
+        STDMETHOD(GetStream)(UINT32 index, sevenzip::ISequentialOutStream** outStream, sevenzip::AskMode askExtractMode) noexcept override { return _inner->GetStream(index, outStream, askExtractMode); }
+        STDMETHOD(PrepareOperation)(sevenzip::AskMode askExtractMode) noexcept override { return _inner->PrepareOperation(askExtractMode); }
+        STDMETHOD(SetOperationResult)(sevenzip::OperationResult opRes) noexcept override { return _inner->SetOperationResult(opRes); }
     };
 
     /******************************************************************************/
@@ -107,7 +107,10 @@ public:
         cv.notify_all();
 
         // wait for the extractor to finish
-        if (extractor.joinable()) { extractor.join(); }
+        if (extractor.joinable())
+        {
+            extractor.join();
+        }
         abortExtraction = false;
 
         // reset, no need to sync, but do it in a way that in theory IFilter::Get* can be called even after failure
@@ -133,10 +136,7 @@ public:
     static std::unique_ptr<streams::WriteStream> CreateWriteStream(FileDescription description, std::function<bool()> waiter)
     {
         // unknown sizes result in a file stream
-        if (!description.SizeIsValid)
-        {
-            return std::make_unique<streams::FileWriteStream>(description);
-        }
+        if (!description.SizeIsValid) { return std::make_unique<streams::FileWriteStream>(description); }
         const auto requiredSize = description.Size;
 
         // ensure the file is not too large in general
@@ -150,12 +150,8 @@ public:
             auto availableMemory = size_t(0);
             while (streams::BufferWriteStream::GetAvailableMemory(availableMemory))
             {
-                if (availableMemory >= requiredSize)
-                {
-                    return std::make_unique<streams::BufferWriteStream>(description);
-                }
-                // try to wait for other tasks to complete
-                if (!waiter()) { break; }
+                if (availableMemory >= requiredSize) { return std::make_unique<streams::BufferWriteStream>(description); }
+                if (!waiter()) { break; } // wait for other tasks to complete before rechecking available memory
             }
         }
 
@@ -163,12 +159,8 @@ public:
         auto freeDiskSpace = size_t(0);
         while (streams::FileWriteStream::GetFreeDiskSpace(freeDiskSpace))
         {
-            if (freeDiskSpace >= requiredSize)
-            {
-                return std::make_unique<streams::FileWriteStream>(description);
-            }
-            // try to wait for other tasks to complete
-            if (!waiter()) { break; }
+            if (freeDiskSpace >= requiredSize) { return std::make_unique<streams::FileWriteStream>(description); }
+            if (!waiter()) { break; } // wait for other tasks to complete before rechecking free disk space
         }
 
         // simply too big
@@ -259,10 +251,7 @@ public:
         get_next_task:
             PIMPL_LOCK_BEGIN(m);
             PIMPL_WAIT(m, cv, !PIMPL_(tasks).empty() || PIMPL_(extractionFinished));
-            if (PIMPL_(tasks).empty())
-            {
-                goto finished; // all done, nothing more to come, need to exit lock
-            }
+            if (PIMPL_(tasks).empty()) { goto finished; } // all done, nothing more to come, need to exit lock
             PIMPL_(currentChunkTask) = PIMPL_(tasks).front();
             PIMPL_(tasks).pop_front();
             PIMPL_LOCK_END;
@@ -277,7 +266,10 @@ public:
         }
         return PIMPL_(currentChunk)->GetChunk(pStat);
     finished:
-        if (PIMPL_(extractor).joinable()) { PIMPL_(extractor).join(); } // thread should be done as well, join to avoid race condition with destructor
+        if (PIMPL_(extractor).joinable())
+        {
+            PIMPL_(extractor).join(); // thread should be done as well, join to avoid race condition with destructor
+        }
         return FILTER_E_END_OF_CHUNKS;
 
         COM_NOTHROW_END;

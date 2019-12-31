@@ -42,7 +42,7 @@ public:
     std::mutex m;
     std::condition_variable cv;
     std::list<CachedChunk> chunks;
-    ChunkIdMap idMap;
+    CachedChunk::IdMap idMap;
     HRESULT result = S_OK;
     bool isExtractionDone = false;
     bool isFilterDone = false;
@@ -57,7 +57,10 @@ public:
         PIMPL_(writeStream) = std::move(writeStream);
         PIMPL_(recursionDepth) = recursionDepth;
         PIMPL_(maxConsecutiveErrors) = settings::max_consecutive_error_chunks();
-        if (PIMPL_(maxConsecutiveErrors)) { PIMPL_(maxConsecutiveErrors) = *PIMPL_(maxConsecutiveErrors) / recursionDepth; } // fewer in recursions
+        if (PIMPL_(maxConsecutiveErrors))
+        {
+            PIMPL_(maxConsecutiveErrors) = *PIMPL_(maxConsecutiveErrors) / recursionDepth; // fewer in recursions
+        }
     }
 
     void ItemTask::Run()
@@ -117,7 +120,10 @@ public:
 
             // signal end and store the result
             PIMPL_LOCK_BEGIN(m);
-            if (SUCCEEDED(PIMPL_(result))) { PIMPL_(result) = hr; }
+            if (SUCCEEDED(PIMPL_(result)))
+            {
+                PIMPL_(result) = hr;
+            }
             PIMPL_(isFilterDone) = true;
             PIMPL_LOCK_END;
             PIMPL_(cv).notify_all();
@@ -128,7 +134,10 @@ public:
     {
         // signal end of extraction for the task and stream
         PIMPL_LOCK_BEGIN(m);
-        if (FAILED(hr)) { PIMPL_(result) = hr; } // extraction errors always override filter failures
+        if (FAILED(hr))
+        {
+            PIMPL_(result) = hr; // extraction errors always override filter failures
+        }
         PIMPL_(isExtractionDone) = true;
         PIMPL_LOCK_END;
         PIMPL_(cv).notify_all();
@@ -139,7 +148,10 @@ public:
     {
         // signal abort and wait for the thread to end
         PIMPL_(aborted) = true;
-        if (PIMPL_(gatherer).joinable()) { PIMPL_(gatherer).join(); }
+        if (PIMPL_(gatherer).joinable())
+        {
+            PIMPL_(gatherer).join();
+        }
     }
 
     std::optional<CachedChunk> ItemTask::NextChunk(ULONG id)
@@ -166,7 +178,10 @@ public:
         PIMPL_LOCK_END;
 
         // wait for the thread and return
-        if (PIMPL_(gatherer).joinable()) { PIMPL_(gatherer).join(); }
+        if (PIMPL_(gatherer).joinable())
+        {
+            PIMPL_(gatherer).join();
+        }
         return std::nullopt;
     }
 }

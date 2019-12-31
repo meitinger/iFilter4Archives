@@ -21,12 +21,12 @@
 #include "ClassFactory.hpp"
 #include "Registrar.hpp"
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) noexcept
 {
     UNREFERENCED_PARAMETER(lpvReserved);
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
-        DisableThreadLibraryCalls(hinstDLL);
+        ::DisableThreadLibraryCalls(hinstDLL);
     }
     return TRUE;
 }

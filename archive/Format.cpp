@@ -52,10 +52,7 @@ public:
         COM_DO_OR_THROW(library.GetFormatProperty(index, sevenzip::HandlerPropertyId::Extension, propv));
         auto exts = std::wstring(::PropVariantToStringWithDefault(propv, STR("").c_str()));
         const auto result = _wcslwr_s(exts.data(), exts.length() + 1);
-        if (result != 0)
-        {
-            throw std::system_error(result, std::generic_category());
-        }
+        if (result != 0) { throw std::system_error(result, std::generic_category()); }
         propv.clear();
 
         // split extensions
@@ -82,11 +79,7 @@ public:
     {
         auto ptr = sevenzip::IInArchivePtr();
         COM_DO_OR_THROW(PIMPL_(Library).CreateObject(PIMPL_(clsid), __uuidof(sevenzip::IInArchive), *reinterpret_cast<void**>(&ptr)));
-        if (!ptr)
-        {
-            // this check is done because we don't blindly trust the result of modules
-            COM_THROW(E_NOINTERFACE);
-        }
+        if (!ptr) { COM_THROW(E_NOINTERFACE); } // this check is done because we don't blindly trust the result of modules
         return ptr;
     }
 }

@@ -129,22 +129,10 @@ namespace utils
         {
             const auto length_excluding_null_terminator = ::GetModuleFileNameW(module_handle, buffer.data(), static_cast<DWORD>(buffer.size()));
             const auto last_error = ::GetLastError();
-            if (length_excluding_null_terminator == 0)
-            {
-                WIN32_THROW(last_error);
-            }
-            if (length_excluding_null_terminator >= buffer.size())
-            {
-                if (last_error != ERROR_INSUFFICIENT_BUFFER)
-                {
-                    WIN32_THROW(last_error);
-                }
-                buffer.resize(buffer.size() * 2);
-            }
-            else
-            {
-                return std::filesystem::path(std::wstring(buffer.data(), length_excluding_null_terminator));
-            }
+            if (length_excluding_null_terminator == 0) { WIN32_THROW(last_error); }
+            if (length_excluding_null_terminator < buffer.size()) { return std::filesystem::path(std::wstring(buffer.data(), length_excluding_null_terminator)); }
+            if (last_error != ERROR_INSUFFICIENT_BUFFER) { WIN32_THROW(last_error); }
+            buffer.resize(buffer.size() * 2);
         }
     }
 

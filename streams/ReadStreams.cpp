@@ -63,10 +63,7 @@ public:
             if (pcbWritten != nullptr) { pcbWritten->QuadPart = written; }
 
             // check for EOF
-            if (read < size || written < read)
-            {
-                return S_FALSE;
-            }
+            if (read < size || written < read) { return S_FALSE; }
             cb.QuadPart -= read;
         }
         return S_OK;
@@ -100,14 +97,10 @@ public:
         pstatstg->grfMode = STGM_READ | STGM_SIMPLE;
         switch (grfStatFlag)
         {
-        case STATFLAG_DEFAULT:
-            return PIMPL_(description).ToStat(pstatstg, true);
-        case STATFLAG_NONAME:
-            return PIMPL_(description).ToStat(pstatstg, false);
-        case STATFLAG_NOOPEN:
-            return STG_E_INVALIDFLAG;
-        default:
-            return E_NOTIMPL;
+        case STATFLAG_DEFAULT: return PIMPL_(description).ToStat(pstatstg, true);
+        case STATFLAG_NONAME: return PIMPL_(description).ToStat(pstatstg, false);
+        case STATFLAG_NOOPEN: return STG_E_INVALIDFLAG;
+        default: return E_NOTIMPL;
         }
     }
 
@@ -181,10 +174,7 @@ public:
         {
             // seeks before start is illegal, check for that
             const auto offset = static_cast<ULONGLONG>(-dlibMove.QuadPart);
-            if (offset > start)
-            {
-                return STG_E_SEEKERROR;
-            }
+            if (offset > start) { return STG_E_SEEKERROR; }
             PIMPL_(position) = start - offset;
         }
         else
@@ -192,10 +182,7 @@ public:
             // make sure we stay within ULONGLONG bounds
             const auto offset = static_cast<ULONGLONG>(dlibMove.QuadPart);
             const auto remaining = MAXULONGLONG - start;
-            if (offset > remaining)
-            {
-                return STG_E_SEEKERROR;
-            }
+            if (offset > remaining) { return STG_E_SEEKERROR; }
             PIMPL_(position) = start + offset;
         }
         if (plibNewPosition != nullptr) { plibNewPosition->QuadPart = PIMPL_(position); };
@@ -249,10 +236,7 @@ public:
                 PIMPL_(isCacheValid) = false;
                 return COM_LAST_WIN32_ERROR;
             }
-            if (bytesRead == 0)
-            {
-                return S_FALSE; // ReadFile indicated EOF, but that's also a success
-            }
+            if (bytesRead == 0) { return S_FALSE; } // ReadFile indicated EOF, but that's also a success
             PIMPL_(positionCache) += bytesRead;
             assert(bytesRead <= cb);
             pv = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(pv) + bytesRead);

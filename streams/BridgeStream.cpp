@@ -44,18 +44,12 @@ public:
     {
         auto liOffset = LARGE_INTEGER();
         liOffset.QuadPart = offset;
-        if (newPosition == nullptr)
-        {
-            return PIMPL_(stream)->Seek(liOffset, seekOrigin, nullptr);
-        }
-        else
-        {
-            auto uliNewPosition = ULARGE_INTEGER();
-            uliNewPosition.QuadPart = *newPosition;
-            const auto result = PIMPL_(stream)->Seek(liOffset, seekOrigin, &uliNewPosition);
-            *newPosition = uliNewPosition.QuadPart;
-            return result;
-        }
+        if (newPosition == nullptr) { return PIMPL_(stream)->Seek(liOffset, seekOrigin, nullptr); }
+        auto uliNewPosition = ULARGE_INTEGER();
+        uliNewPosition.QuadPart = *newPosition;
+        const auto result = PIMPL_(stream)->Seek(liOffset, seekOrigin, &uliNewPosition);
+        *newPosition = uliNewPosition.QuadPart;
+        return result;
     }
 
     STDMETHODIMP BridgeStream::GetSize(UINT64* size) noexcept

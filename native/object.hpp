@@ -43,14 +43,8 @@ namespace com
     template<typename T>
     std::unique_ptr<com::object> make_copy(const T& other)
     {
-        if constexpr (std::is_abstract_v<T>)
-        {
-            throw std::invalid_argument(typeid(T).name());
-        }
-        else
-        {
-            return std::make_unique<T>(other);
-        }
+        if constexpr (std::is_abstract_v<T>) { throw std::invalid_argument(typeid(T).name()); }
+        else { return std::make_unique<T>(other); }
     }
 
     template<typename T, typename ...Interfaces>

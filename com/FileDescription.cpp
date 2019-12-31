@@ -50,10 +50,7 @@ public:
             // get the lower-case extension
             PIMPL_(extensionCache).assign(std::filesystem::path(PIMPL_(Name)).extension());
             const auto result = _wcslwr_s(PIMPL_(extensionCache).data(), PIMPL_(extensionCache).length() + 1); // not portable, assumes data() == c_str()
-            if (result != 0)
-            {
-                throw std::system_error(result, std::generic_category());
-            }
+            if (result != 0) { throw std::system_error(result, std::generic_category()); }
             PIMPL_(extensionCacheValid) = true;
         }
         return PIMPL_(extensionCache);
@@ -75,10 +72,7 @@ public:
         {
             const auto sizeIncludingNullTerminator = (PIMPL_(Name).length() + 1) * sizeof(WCHAR);
             const auto string = reinterpret_cast<LPOLESTR>(::CoTaskMemAlloc(sizeIncludingNullTerminator));
-            if (string == nullptr)
-            {
-                return E_OUTOFMEMORY;
-            }
+            if (string == nullptr) { return E_OUTOFMEMORY; }
             std::memcpy(string, PIMPL_(Name).c_str(), sizeIncludingNullTerminator); // must not fail afterwards or we leak memory
             stat->pwcsName = string;
         }

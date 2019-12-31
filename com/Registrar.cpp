@@ -64,10 +64,7 @@ public:
     {
         const auto string = key.get_string_value(nullptr);
         auto guid = win32::guid();
-        if (string && win32::guid::try_parse(*string, guid))
-        {
-            return guid;
-        }
+        if (string && win32::guid::try_parse(*string, guid)) { return guid; }
         return std::nullopt;
     }
 
@@ -81,10 +78,7 @@ public:
 
         // check for HKEY_LOCAL_MACHINE\SOFTWARE\Classes\.<ext>\PersistentHandler
         const auto persistentHandlerKey = extKey->open_sub_key_readonly(str::PersistentHandler);
-        if (persistentHandlerKey)
-        {
-            return GetDefaultAsGuid(*persistentHandlerKey);
-        }
+        if (persistentHandlerKey) { return GetDefaultAsGuid(*persistentHandlerKey); }
 
         // not found, try obsolete registration, get HKEY_LOCAL_MACHINE\SOFTWARE\Classes\.<ext>\(default)
         const auto extDefault = extKey->get_string_value(nullptr);
@@ -104,10 +98,7 @@ public:
         (
             std::wstring().append(str::CLSID).append(str::Sep).append(applicationGuid->to_wstring()).append(str::Sep).append(str::PersistentHandler)
         );
-        if (applicationPersistentHandlerKey)
-        {
-            return GetDefaultAsGuid(*applicationPersistentHandlerKey);
-        }
+        if (applicationPersistentHandlerKey) { return GetDefaultAsGuid(*applicationPersistentHandlerKey); }
 
         // nothing found
         return std::nullopt;
@@ -141,10 +132,7 @@ public:
         // check the cache first
         PIMPL_LOCK_BEGIN(cacheMutex);
         const auto cachedResult = PIMPL_(cache).find(extension);
-        if (cachedResult != PIMPL_(cache).end())
-        {
-            return cachedResult->second;
-        }
+        if (cachedResult != PIMPL_(cache).end()) { return cachedResult->second; }
         PIMPL_LOCK_END;
 
         // always use recursion if the extension is known and the behavior is wanted

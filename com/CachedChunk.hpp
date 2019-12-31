@@ -29,7 +29,6 @@
 namespace com
 {
     class CachedChunk; // holds all information from an iFilter chunk
-    using ChunkIdMap = std::unordered_map<ULONG, ULONG>; // maps ids returned from sub-filters to ids returned to Windows
 
     /******************************************************************************/
 
@@ -38,12 +37,15 @@ private:
     CachedChunk();
 
 public:
+    using IdMap = std::unordered_map<ULONG, ULONG>;
+
     PROPERTY_READONLY(SCODE, Code, const noexcept);
 
-    void Map(ULONG newId, ChunkIdMap& idMap);
     SCODE GetChunk(STAT_CHUNK* pStat) noexcept;
     SCODE GetText(ULONG* pcwcBuffer, WCHAR* awcBuffer) noexcept;
     SCODE GetValue(PROPVARIANT** ppPropValue) noexcept;
+
+    void Map(ULONG newId, IdMap& idMap);
 
     static CachedChunk FromFilter(IFilter* filter);
     static CachedChunk FromHResult(HRESULT hr);

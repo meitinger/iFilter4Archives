@@ -51,10 +51,8 @@ namespace com
         }
         else
         {
-            if (!_lockedFactory)
-            {
-                return E_FAIL;
-            }
+            if (!_lockedFactory) { return E_FAIL; } // more unlocks than locks?
+
             if (--_lockCount == 0)
             {
                 _lockedFactory = nullptr;
@@ -67,10 +65,7 @@ namespace com
     HRESULT ClassFactory::GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv) noexcept
     {
         COM_CHECK_POINTER_AND_SET(ppv, nullptr);
-        if (!IsEqualCLSID(rclsid, __uuidof(Filter)))
-        {
-            return CLASS_E_CLASSNOTAVAILABLE; // only handle com::Filter
-        }
+        if (!IsEqualCLSID(rclsid, __uuidof(Filter))) { return CLASS_E_CLASSNOTAVAILABLE; } // only handle com::Filter
 
         // get a AddRef'd copy of a possible locked factory
         auto factory = IClassFactoryPtr();
@@ -79,13 +74,7 @@ namespace com
         factory = _lockedFactory;
         COM_NOTHROW_END;
 
-        // query the existing factory, if there is one
-        if (factory)
-        {
-            return factory->QueryInterface(riid, ppv);
-        }
-
-        // create a new instance
-        return com::object::CreateComInstance<ClassFactory>(nullptr, riid, ppv);
+        // query the existing factory or create a new one
+        return factory ? factory->QueryInterface(riid, ppv) : com::object::CreateComInstance<ClassFactory>(nullptr, riid, ppv);
     }
 }

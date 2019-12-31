@@ -50,25 +50,6 @@ public:
 
     CachedChunk::CachedChunk() : PIMPL_INIT() {}
 
-    void CachedChunk::Map(ULONG newId, ChunkIdMap& idMap)
-    {
-        if (PIMPL_(mapped))
-        {
-            // ensure map isn't called twice with different ids
-            if (newId != PIMPL_(stat).idChunk) { throw std::invalid_argument("newId"); }
-            return;
-        }
-        idMap[PIMPL_(stat).idChunk] = newId;
-        PIMPL_(stat).idChunk = newId;
-        if (PIMPL_(stat).idChunkSource != 0)
-        {
-            // also try to map the source chunk id
-            const auto sourceIdEntry = idMap.find(PIMPL_(stat).idChunkSource);
-            PIMPL_(stat).idChunkSource = sourceIdEntry == idMap.end() ? 0 : sourceIdEntry->second;
-        }
-        PIMPL_(mapped) = true;
-    }
-
     SCODE CachedChunk::GetCode() const noexcept { return PIMPL_(statResult); }
 
     SCODE CachedChunk::GetChunk(STAT_CHUNK* pStat) noexcept
@@ -81,18 +62,10 @@ public:
     {
         COM_CHECK_POINTER(pcwcBuffer);
         COM_CHECK_POINTER(awcBuffer);
-        if (*pcwcBuffer == 0)
-        {
-            return E_NOT_SUFFICIENT_BUFFER; // need at least space for the null terminator
-        }
-        if (!SUCCEEDED(PIMPL_(statResult)) || !(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_TEXT))
-        {
-            return FILTER_E_NO_TEXT;
-        }
-        if (PIMPL_(textOffset) >= PIMPL_(text).size())
-        {
-            return FILTER_E_NO_MORE_TEXT;
-        }
+        if (*pcwcBuffer == 0) { return E_NOT_SUFFICIENT_BUFFER; } // need at least space for the null terminator
+        if (!SUCCEEDED(PIMPL_(statResult)) || !(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_TEXT)) { return FILTER_E_NO_TEXT; }
+        if (PIMPL_(textOffset) >= PIMPL_(text).size()) { return FILTER_E_NO_MORE_TEXT; }
+
         const auto remaining = PIMPL_(text).size() - PIMPL_(textOffset);
         if (*pcwcBuffer >= remaining + 1) // plus one for the null terminator
         {
@@ -115,16 +88,29 @@ public:
     SCODE CachedChunk::GetValue(PROPVARIANT** ppPropValue) noexcept
     {
         COM_CHECK_POINTER_AND_SET(ppPropValue, nullptr);
-        if (!SUCCEEDED(PIMPL_(statResult)) || !(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_VALUE))
-        {
-            return FILTER_E_NO_VALUES;
-        }
-        if (!PIMPL_(value))
-        {
-            return FILTER_E_NO_MORE_VALUES; // GetValue has already been called
-        }
+        if (!SUCCEEDED(PIMPL_(statResult)) || !(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_VALUE)) { return FILTER_E_NO_VALUES; }
+        if (!PIMPL_(value)) { return FILTER_E_NO_MORE_VALUES; } // GetValue has already been called
         *ppPropValue = PIMPL_(value).release();
         return S_OK;
+    }
+
+    void CachedChunk::Map(ULONG newId, IdMap& idMap)
+    {
+        if (PIMPL_(mapped))
+        {
+            // ensure map isn't called twice with different ids
+            if (newId != PIMPL_(stat).idChunk) { throw std::invalid_argument("newId"); }
+            return;
+        }
+        idMap[PIMPL_(stat).idChunk] = newId;
+        PIMPL_(stat).idChunk = newId;
+        if (PIMPL_(stat).idChunkSource != 0)
+        {
+            // also try to map the source chunk id
+            const auto sourceIdEntry = idMap.find(PIMPL_(stat).idChunkSource);
+            PIMPL_(stat).idChunkSource = sourceIdEntry == idMap.end() ? 0 : sourceIdEntry->second;
+        }
+        PIMPL_(mapped) = true;
     }
 
     CachedChunk CachedChunk::FromFilter(IFilter* filter)
@@ -164,10 +150,7 @@ public:
                         break;
                     }
                     text.resize(offset + length);
-                    if (textResult == FILTER_S_LAST_TEXT)
-                    {
-                        break; // no need to call GetText again
-                    }
+                    if (textResult == FILTER_S_LAST_TEXT) { break; } // no need to call GetText again
                 }
                 text.shrink_to_fit();
             }

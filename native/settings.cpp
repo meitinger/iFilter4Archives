@@ -27,20 +27,14 @@ namespace settings
     static std::optional<DWORD> read_dword(win32::czwstring name)
     {
         const auto key = win32::registry_key::local_machine().open_sub_key_readonly(STR("SOFTWARE\\iFilter4Archives"));
-        if (key)
-        {
-            return key->get_dword_value(name);
-        }
+        if (key) { return key->get_dword_value(name); }
         return std::nullopt;
     }
 
     DWORD concurrent_filter_threads()
     {
         const auto value = read_dword(STR("ConcurrentFilterThreads"));
-        if (value)
-        {
-            return *value;
-        }
+        if (value) { return *value; }
         return std::thread::hardware_concurrency();
     }
 
