@@ -61,7 +61,7 @@ namespace com
     {
     private:
         IUnknown* _unknown_ptr = nullptr;
-        static HRESULT make_com(std::unique_ptr<object> object_ptr, IUnknown* outer_unknown, REFIID interface_id, void** com_object);
+        static HRESULT make_com(std::unique_ptr<object> object_ptr, IUnknown* outer_unknown, REFIID interface_id, void** com_object); // also throws despite HRESULT
 
     protected:
         static inline const auto class_interface_map = object_interface_map({ {IID_IUnknown, offset_of_interface<object, IUnknown>()} });
@@ -103,9 +103,9 @@ namespace com
             return ptr;
         }
 
-        STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject);
-        STDMETHOD_(ULONG, AddRef)(void);
-        STDMETHOD_(ULONG, Release)(void);
+        STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject) noexcept override;
+        STDMETHOD_(ULONG, AddRef)(void) noexcept override;
+        STDMETHOD_(ULONG, Release)(void) noexcept override;
     };
 }
 
@@ -114,7 +114,7 @@ namespace com
 #define COM_CLASS_DECLARATION(className, inheritance, ...) \
     class className : public inheritance \
     { \
-        private: using type = className; \
+        private: using self = className; \
         private: using base = CLASS_BASE((inheritance)); \
         public: ~className() noexcept override; \
         public: className(className&&) noexcept; \
@@ -144,8 +144,8 @@ namespace com
 /******************************************************************************/
 
 #define COM_VISIBLE(...) \
-    protected: static inline const auto class_interface_map = com::make_interface_map<type, __VA_ARGS__>(base::class_interface_map); \
-    protected: const com::object_interface_map& interface_map() const noexcept override { return type::class_interface_map; } \
-    public: STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject) override { return com::object::QueryInterface(riid, ppvObject); } \
-    public: STDMETHOD_(ULONG, AddRef)(void) override { return com::object::AddRef(); } \
-    public: STDMETHOD_(ULONG, Release)(void) override { return com::object::Release(); }
+    protected: static inline const auto class_interface_map = com::make_interface_map<self, __VA_ARGS__>(base::class_interface_map); \
+    protected: const com::object_interface_map& interface_map() const noexcept override { return self::class_interface_map; } \
+    public: STDMETHOD(QueryInterface)(REFIID riid, void** ppvObject) noexcept override { return com::object::QueryInterface(riid, ppvObject); } \
+    public: STDMETHOD_(ULONG, AddRef)(void) noexcept override { return com::object::AddRef(); } \
+    public: STDMETHOD_(ULONG, Release)(void) noexcept override { return com::object::Release(); }

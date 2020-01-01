@@ -57,7 +57,7 @@ namespace com
         unknown& operator= (const unknown&) = delete;
         unknown& operator= (unknown&&) = delete;
 
-        STDMETHODIMP unknown::QueryInterface(REFIID riid, void** ppvObject)
+        STDMETHODIMP unknown::QueryInterface(REFIID riid, void** ppvObject) noexcept override
         {
             COM_CHECK_POINTER_AND_SET(ppvObject, nullptr);
             const auto entry = _interface_map.find(riid); // not a noexcept, but operator== should never throw
@@ -67,12 +67,12 @@ namespace com
             return S_OK;
         }
 
-        STDMETHODIMP_(ULONG) unknown::AddRef(void)
+        STDMETHODIMP_(ULONG) unknown::AddRef(void) noexcept override
         {
             return ++_ref_count;
         }
 
-        STDMETHODIMP_(ULONG) unknown::Release(void)
+        STDMETHODIMP_(ULONG) unknown::Release(void) noexcept override
         {
             const auto new_ref_count = --_ref_count;
             if (new_ref_count == 0)
@@ -148,19 +148,19 @@ namespace com
         return _com_object_count == 0 ? S_OK : S_FALSE;
     }
 
-    STDMETHODIMP object::QueryInterface(REFIID riid, void** ppvObject)
+    STDMETHODIMP object::QueryInterface(REFIID riid, void** ppvObject) noexcept
     {
         assert(_unknown_ptr);
         return _unknown_ptr->QueryInterface(riid, ppvObject);
     }
 
-    STDMETHODIMP_(ULONG) object::AddRef(void)
+    STDMETHODIMP_(ULONG) object::AddRef(void) noexcept
     {
         assert(_unknown_ptr);
         return _unknown_ptr->AddRef();
     }
 
-    STDMETHODIMP_(ULONG) object::Release(void)
+    STDMETHODIMP_(ULONG) object::Release(void) noexcept
     {
         assert(_unknown_ptr);
         return _unknown_ptr->Release();

@@ -313,7 +313,7 @@ public:
 
     //----------------------------------------------------------------------------//
 
-    STDMETHODIMP Filter::Load(IStream* pStm) noexcept // called from the Windows thread
+    STDMETHODIMP Filter::Load(IStream* pStm) noexcept // called from Windows thread
     {
         COM_CHECK_POINTER(pStm);
         PIMPL_(stream) = pStm; // will call AddRef and release the old one
@@ -326,7 +326,7 @@ public:
 
     //----------------------------------------------------------------------------//
 
-    STDMETHODIMP Filter::Load(LPCOLESTR pszFileName, DWORD dwMode) noexcept
+    STDMETHODIMP Filter::Load(LPCOLESTR pszFileName, DWORD dwMode) noexcept // called from Windows thread
     {
 #pragma comment(lib, "Shlwapi")
         return ::SHCreateStreamOnFileEx(pszFileName, dwMode, FILE_ATTRIBUTE_READONLY, false, nullptr, &PIMPL_(stream));
@@ -399,7 +399,7 @@ public:
         return S_OK;
     }
 
-    STDMETHODIMP Filter::PrepareOperation(sevenzip::AskMode askExtractMode) noexcept { return S_OK; } // result not always used
+    STDMETHODIMP Filter::PrepareOperation(sevenzip::AskMode askExtractMode) noexcept { return S_OK; } // result sometimes ignored by 7-Zip
 
     STDMETHODIMP Filter::SetOperationResult(sevenzip::OperationResult opRes) noexcept // called from extraction thread
     {
@@ -408,7 +408,7 @@ public:
 
     //----------------------------------------------------------------------------//
 
-    STDMETHODIMP Filter::SetRecursionDepth(ULONG depth) noexcept
+    STDMETHODIMP Filter::SetRecursionDepth(ULONG depth) noexcept // called from ItemTask thread (acting as Windows Thread)
     {
         PIMPL_(recursionDepth) = depth;
         return S_OK;
