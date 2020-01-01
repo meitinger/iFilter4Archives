@@ -31,16 +31,16 @@ namespace win32
 {
     // forward declarations for string literals
     template<class CharT, class Traits = std::char_traits<CharT>>
-    class basic_zstring;
+    class basic_czstring;
     namespace literals
     {
-        constexpr win32::basic_zstring<char> operator"" _sz(const char* const str, const size_t len) noexcept;
-        constexpr win32::basic_zstring<wchar_t> operator"" _sz(const wchar_t* const str, const size_t len) noexcept;
+        constexpr win32::basic_czstring<char> operator"" _sz(const char* const str, const size_t len) noexcept;
+        constexpr win32::basic_czstring<wchar_t> operator"" _sz(const wchar_t* const str, const size_t len) noexcept;
     }
 
     // wrapper for string, wstring and literals, anything that ensures zero termination
     template<class CharT, class Traits>
-    class basic_zstring
+    class basic_czstring
     {
     public:
         using traits_type = Traits;
@@ -54,26 +54,26 @@ namespace win32
         const pointer _str;
         const size_type _len;
 
-        constexpr basic_zstring(const pointer str, const size_type len) noexcept : _str(str), _len(len) {}
+        constexpr basic_czstring(const pointer str, const size_type len) noexcept : _str(str), _len(len) {}
         constexpr size_type length() noexcept { return _len; }
 
         using string = std::basic_string<value_type, traits_type>;
         using string_view = std::basic_string_view<value_type, traits_type>;
 
-        friend constexpr basic_zstring<char> literals::operator"" _sz(const char* const, const size_t) noexcept;
-        friend constexpr basic_zstring<wchar_t> literals::operator"" _sz(const wchar_t* const, const size_t) noexcept;
+        friend constexpr basic_czstring<char> literals::operator"" _sz(const char* const, const size_t) noexcept;
+        friend constexpr basic_czstring<wchar_t> literals::operator"" _sz(const wchar_t* const, const size_t) noexcept;
 
     public:
-        constexpr basic_zstring(const basic_zstring&) noexcept = default; // for nested calls, be careful
-        constexpr basic_zstring& operator=(const basic_zstring&) noexcept = delete; // too dangerous
-        constexpr basic_zstring(basic_zstring&&) noexcept = default; // if passed as rvalue
-        constexpr basic_zstring& operator=(basic_zstring&&) noexcept = delete; // don't use it like that
+        constexpr basic_czstring(const basic_czstring&) noexcept = default; // for nested calls, be careful
+        constexpr basic_czstring& operator=(const basic_czstring&) noexcept = delete; // too dangerous
+        constexpr basic_czstring(basic_czstring&&) noexcept = default; // if passed as rvalue
+        constexpr basic_czstring& operator=(basic_czstring&&) noexcept = delete; // don't use it like that
 
-        constexpr basic_zstring(std::nullptr_t) noexcept : _str(nullptr), _len(0) {} // nullptr
-        constexpr basic_zstring(const pointer str) noexcept : _str(str), _len(Traits::length(str)) {} // another C string
-        basic_zstring(const string& str) noexcept : _str(str.c_str()), _len(str.length()) {} // std::string, std::wstring
+        constexpr basic_czstring(std::nullptr_t) noexcept : _str(nullptr), _len(0) {} // nullptr
+        constexpr basic_czstring(const pointer str) noexcept : _str(str), _len(Traits::length(str)) {} // another C string
+        basic_czstring(const string& str) noexcept : _str(str.c_str()), _len(str.length()) {} // std::string, std::wstring
         template<typename T = std::enable_if_t<std::is_same_v<CharT, wchar_t>, std::filesystem::path>>
-        basic_zstring(const T& path) noexcept : _str(path.native().c_str()), _len(path.native().length()) {} // std::filesystem::path
+        basic_czstring(const T& path) noexcept : _str(path.native().c_str()), _len(path.native().length()) {} // std::filesystem::path
 
         constexpr operator string_view() const noexcept { return string_view(_str, _len); } // to support std::string.append(czstring)
         constexpr pointer c_str() const noexcept { return _str; }
@@ -83,8 +83,8 @@ namespace win32
         constexpr size_type size_including_null_terminator() const noexcept { return (_len + 1) * sizeof(value_type); }
     };
 
-    using czstring = basic_zstring<char>; // LPCSTR
-    using czwstring = basic_zstring<wchar_t>; //LPCWSTR
+    using czstring = basic_czstring<char>; // LPCSTR
+    using czwstring = basic_czstring<wchar_t>; //LPCWSTR
 
     namespace literals
     {
