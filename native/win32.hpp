@@ -30,12 +30,12 @@
 namespace win32
 {
     // forward declarations for string literals
-    template<class CharT, class Traits = std::char_traits<std::remove_const_t<CharT>>>
+    template<class CharT, class Traits = std::char_traits<CharT>>
     class basic_zstring;
     namespace literals
     {
-        constexpr win32::basic_zstring<const char> operator"" _sz(const char* const str, const size_t len) noexcept;
-        constexpr win32::basic_zstring<const wchar_t> operator"" _sz(const wchar_t* const str, const size_t len) noexcept;
+        constexpr win32::basic_zstring<char> operator"" _sz(const char* const str, const size_t len) noexcept;
+        constexpr win32::basic_zstring<wchar_t> operator"" _sz(const wchar_t* const str, const size_t len) noexcept;
     }
 
     // wrapper for string, wstring and literals, anything that ensures zero termination
@@ -44,11 +44,10 @@ namespace win32
     {
     public:
         using traits_type = Traits;
-        using value_type = std::remove_const_t<CharT>;
-        using pointer = CharT*;
+        using value_type = CharT;
+        using pointer = const CharT*;
         using size_type = std::size_t;
-        using basic_string = std::conditional_t<std::is_const_v<CharT>, const std::basic_string<value_type, traits_type>, std::basic_string<value_type, traits_type>>;
-        using basic_string_view = std::basic_string_view<value_type, traits_type>;
+
         static_assert(std::is_same_v<value_type, typename traits_type::char_type>);
 
     private:
@@ -56,33 +55,36 @@ namespace win32
         const size_type _len;
 
         constexpr basic_zstring(const pointer str, const size_type len) noexcept : _str(str), _len(len) {}
-        friend constexpr basic_zstring<const char> literals::operator"" _sz(const char* const, const size_t) noexcept;
-        friend constexpr basic_zstring<const wchar_t> literals::operator"" _sz(const wchar_t* const, const size_t) noexcept;
+        constexpr size_type length() noexcept { return _len; }
+
+        using string = std::basic_string<value_type, traits_type>;
+        using string_view = std::basic_string_view<value_type, traits_type>;
+
+        friend constexpr basic_zstring<char> literals::operator"" _sz(const char* const, const size_t) noexcept;
+        friend constexpr basic_zstring<wchar_t> literals::operator"" _sz(const wchar_t* const, const size_t) noexcept;
 
     public:
-        constexpr basic_zstring(std::nullptr_t) noexcept : _str(nullptr), _len(0) {} // nullptr
         constexpr basic_zstring(const basic_zstring&) noexcept = default; // for nested calls, be careful
         constexpr basic_zstring& operator=(const basic_zstring&) noexcept = delete; // too dangerous
         constexpr basic_zstring(basic_zstring&&) noexcept = default; // if passed as rvalue
         constexpr basic_zstring& operator=(basic_zstring&&) noexcept = delete; // don't use it like that
-        constexpr basic_zstring(pointer str) noexcept : _str(str), _len(Traits::length(str)) {} // another c_str
-        basic_zstring(basic_string& str) noexcept : _str(str.c_str()), _len(str.length()) {} // std::string, std::wstring
 
-        template<typename T = std::enable_if_t<std::is_same_v<CharT, const wchar_t>, std::filesystem::path>>
-        basic_zstring(const std::filesystem::path& path) noexcept : _str(path.native().c_str()), _len(path.native().length()) {} // std::filesystem::path
+        constexpr basic_zstring(std::nullptr_t) noexcept : _str(nullptr), _len(0) {} // nullptr
+        constexpr basic_zstring(const pointer str) noexcept : _str(str), _len(Traits::length(str)) {} // another C string
+        basic_zstring(const string& str) noexcept : _str(str.c_str()), _len(str.length()) {} // std::string, std::wstring
+        template<typename T = std::enable_if_t<std::is_same_v<CharT, wchar_t>, std::filesystem::path>>
+        basic_zstring(const T& path) noexcept : _str(path.native().c_str()), _len(path.native().length()) {} // std::filesystem::path
 
-        constexpr operator basic_string_view() const { return basic_string_view(_str, _len); } // to support std::string.append(czstring)
-        constexpr pointer c_str() const { return _str; }
-        constexpr size_type length_excluding_null_terminator() const { return _len; }
-        constexpr size_type length_including_null_terminator() const { return _len + 1; }
-        constexpr size_type size_excluding_null_terminator() const { return _len * sizeof(value_type); }
-        constexpr size_type size_including_null_terminator() const { return (_len + 1) * sizeof(value_type); }
+        constexpr operator string_view() const noexcept { return string_view(_str, _len); } // to support std::string.append(czstring)
+        constexpr pointer c_str() const noexcept { return _str; }
+        constexpr size_type length_excluding_null_terminator() const noexcept { return _len; }
+        constexpr size_type length_including_null_terminator() const noexcept { return _len + 1; }
+        constexpr size_type size_excluding_null_terminator() const noexcept { return _len * sizeof(value_type); }
+        constexpr size_type size_including_null_terminator() const noexcept { return (_len + 1) * sizeof(value_type); }
     };
 
-    using zstring = basic_zstring<char>; // LPSTR
-    using zwstring = basic_zstring<wchar_t>; // LPWSTR
-    using czstring = basic_zstring<const char>; // LPCSTR
-    using czwstring = basic_zstring<const wchar_t>; //LPCWSTR
+    using czstring = basic_zstring<char>; // LPCSTR
+    using czwstring = basic_zstring<wchar_t>; //LPCWSTR
 
     namespace literals
     {
