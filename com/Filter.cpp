@@ -91,6 +91,7 @@ public:
     // shared between extractor and Windows thread, must be synced
     std::list<ItemTask> tasks;
     bool extractionFinished;
+    HRESULT extractionResult;
     bool abortExtraction;
 
     // used exclusively in the extractor thread
@@ -167,15 +168,14 @@ public:
         return nullptr;
     }
 
-    static HRESULT EndExtractionTaskIfAny(std::optional<ItemTask>& task, HRESULT hr) noexcept
+    static void EndExtractionTaskIfAny(std::optional<ItemTask>& task, HRESULT hr = S_OK)
     {
         // end and clear the task if there is one
-        if (!task) { return S_OK; }
-        COM_NOTHROW_BEGIN;
-        task->SetEndOfExtraction(hr);
-        COM_NOTHROW_END;
-        task = std::nullopt;
-        return S_OK;
+        if (task)
+        {
+            task->SetEndOfExtraction(hr);
+            task = std::nullopt;
+        }
     }
 
     static HRESULT TranslateOperationResult(sevenzip::OperationResult opRes) noexcept
@@ -203,9 +203,7 @@ public:
         COM_CHECK_ARG(cAttributes == 0 || aAttributes != nullptr); // according to doc better than E_POINTER
         COM_CHECK_POINTER_AND_SET(pFlags, 0);
         if (!PIMPL_(stream)) { return E_FAIL; } // according to doc
-        auto position = LARGE_INTEGER();
-        position.QuadPart = 0;
-        COM_DO_OR_RETURN(PIMPL_(stream)->Seek(position, STREAM_SEEK_SET, nullptr)); // rewind the stream (necessary for iFiltTst)
+        COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_SET, nullptr)); // rewind the stream (necessary for iFiltTst)
 
         COM_NOTHROW_BEGIN;
         PIMPL_(AbortAnyExtractionOrTasksAndReset)(); // according to ATL, this method might be called multiple times, so stop any running extraction
@@ -218,26 +216,23 @@ public:
 
         // start new extractor thread and set attributes
         PIMPL_(extractionFinished) = false; // no need to sync yet
+        PIMPL_(extractionResult) = S_OK;
         PIMPL_(extractor) = std::thread([PIMPL_CAPTURE, callback = this]()
         {
-            auto result = E_ABORT;
-            try
-            {
-                // try to extract everything
-                result = PIMPL_(archive)->Extract(nullptr, MAXUINT32, 0, &ExtractCallbackForwarder(callback));
-                PIMPL_(archive)->Close();
-            }
-            catch (...)
-            {
-                // this should never happen
-            }
+            // try to extract everything
+            auto hr = S_OK;
+            COM_THREAD_BEGIN(COINITBASE_MULTITHREADED);
+            COM_DO_OR_THROW(PIMPL_(archive)->Extract(nullptr, MAXUINT32, 0, &ExtractCallbackForwarder(callback)));
+            COM_DO_OR_THROW(PIMPL_(archive)->Close());
+            COM_THREAD_END(hr);
 
             // necessary if 7-Zip formats don't call SetOperationResult, this must succeed to avoid deadlocks
-            COM_DO_OR_THROW(EndExtractionTaskIfAny(PIMPL_(currentExtractTask), result));
+            EndExtractionTaskIfAny(PIMPL_(currentExtractTask));
 
             // signal finished
             PIMPL_LOCK_BEGIN(m);
             PIMPL_(extractionFinished) = true;
+            PIMPL_(extractionResult) = hr;
             PIMPL_LOCK_END;
             PIMPL_(cv).notify_all();
         });
@@ -254,7 +249,16 @@ public:
         get_next_task:
             PIMPL_LOCK_BEGIN(m);
             PIMPL_WAIT(m, cv, !PIMPL_(tasks).empty() || PIMPL_(extractionFinished));
-            if (PIMPL_(tasks).empty()) { goto finished; } // all done, nothing more to come, need to exit lock
+            if (PIMPL_(tasks).empty())
+            {
+                if (FAILED(PIMPL_(extractionResult)))
+                {
+                    const auto hr = PIMPL_(extractionResult);
+                    PIMPL_(extractionResult) = S_OK;
+                    return hr;
+                }
+                goto finished; // all done, nothing more to come, need to exit lock
+            }
             PIMPL_(currentChunkTask) = PIMPL_(tasks).front();
             PIMPL_(tasks).pop_front();
             PIMPL_LOCK_END;
@@ -347,15 +351,15 @@ public:
     STDMETHODIMP Filter::GetStream(UINT32 index, sevenzip::ISequentialOutStream** outStream, sevenzip::AskMode askExtractMode) noexcept // called from extraction thread
     {
         COM_CHECK_POINTER_AND_SET(outStream, nullptr); // if we return S_OK with outStream set to NULL the entry is skipped
-        COM_CHECK_ARG(askExtractMode == sevenzip::AskMode::Extract); // this should never be
         COM_CHECK_STATE(PIMPL_(attributes) && PIMPL_(archive)); // ensure all required members are set
-
-        // there shouldn't be any pending task (if 7-Zip calls SetOperationResult), but make sure anyway
-        COM_DO_OR_RETURN(EndExtractionTaskIfAny(PIMPL_(currentExtractTask), E_ABORT));
+        if (askExtractMode != sevenzip::AskMode::Extract) { return S_OK; } // do nothing if not extracting (e.g. corrupted archive)
 
         // reserve the com pointer and enter nothrow
         auto streamPtr = sevenzip::ISequentialOutStreamPtr();
         COM_NOTHROW_BEGIN;
+
+        // there shouldn't be any pending task (if 7-Zip calls SetOperationResult), but make sure of it anyway
+        EndExtractionTaskIfAny(PIMPL_(currentExtractTask));
 
         // preliminary checks on the file type
         const auto fileDescription = FileDescription::FromArchiveItem(PIMPL_(archive), index);
@@ -403,7 +407,10 @@ public:
 
     STDMETHODIMP Filter::SetOperationResult(sevenzip::OperationResult opRes) noexcept // called from extraction thread
     {
-        return EndExtractionTaskIfAny(PIMPL_(currentExtractTask), TranslateOperationResult(opRes));
+        COM_NOTHROW_BEGIN;
+        EndExtractionTaskIfAny(PIMPL_(currentExtractTask), TranslateOperationResult(opRes));
+        COM_NOTHROW_END;
+        return S_OK;
     }
 
     //----------------------------------------------------------------------------//

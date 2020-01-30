@@ -86,6 +86,17 @@ namespace utils
     catch (const std::system_error& e) { return utils::hresult_from_system_error(e); } \
     catch (...) { return E_UNEXPECTED; }
 
+#define COM_THREAD_BEGIN(coinit) \
+    try \
+    { \
+        COM_DO_OR_THROW(::CoInitializeEx(nullptr, (coinit)));
+
+#define COM_THREAD_END(hr) \
+    } \
+    catch (const std::bad_alloc&) { (hr) = E_OUTOFMEMORY; } \
+    catch (const std::system_error& e) { (hr) = utils::hresult_from_system_error(e); } \
+    catch (...) { (hr) = E_UNEXPECTED; }
+
 #define COM_CHECK_ARG(check) \
     do { \
         if (!(check)) { return E_INVALIDARG; } \

@@ -112,13 +112,12 @@ public:
         COM_NOTHROW_BEGIN;
 
         // get the current position
-        auto move = LARGE_INTEGER();
-        move.QuadPart = 0;
         auto position = ULARGE_INTEGER();
-        COM_DO_OR_RETURN(Seek(move, STREAM_SEEK_CUR, &position));
+        COM_DO_OR_RETURN(Seek(LARGE_INTEGER(), STREAM_SEEK_CUR, &position));
 
         // clone the stream and set its position
         streamPtr = CloneInternal();
+        auto move = LARGE_INTEGER();
         move.QuadPart = position.QuadPart;
         COM_DO_OR_RETURN(streamPtr->Seek(move, STREAM_SEEK_SET, nullptr));
 

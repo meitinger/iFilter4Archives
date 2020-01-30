@@ -68,55 +68,52 @@ public:
         PIMPL_(gatherer) = std::thread([PIMPL_CAPTURE]()
         {
             auto hr = S_OK;
-            try
+            COM_THREAD_BEGIN(COINIT_MULTITHREADED);
+
+            // initialize the sub filter
+            auto filter = IFilterPtr();
+            COM_DO_OR_THROW(filter.CreateInstance(PIMPL_(filterClsid), nullptr, CLSCTX_INPROC_SERVER));
+            auto initializeWithStream = IInitializeWithStreamPtr();
+            if (SUCCEEDED(filter->QueryInterface<IInitializeWithStream>(&initializeWithStream)))
             {
-                // initialize the sub filter
-                COM_DO_OR_THROW(::CoInitialize(nullptr));
-                auto filter = IFilterPtr();
-                COM_DO_OR_THROW(::CoCreateInstance(PIMPL_(filterClsid), nullptr, CLSCTX_INPROC_SERVER, IID_IFilter, reinterpret_cast<LPVOID*>(&filter)));
-                auto initializeWithStream = IInitializeWithStreamPtr();
-                if (SUCCEEDED(filter->QueryInterface<IInitializeWithStream>(&initializeWithStream)))
-                {
-                    COM_DO_OR_THROW(initializeWithStream->Initialize(PIMPL_(writeStream)->OpenReadStream(), STGM_READ));
-                }
-                else
-                {
-                    // no IInitializeWithStream, try IPersistStream
-                    auto persistStream = IPersistStreamPtr();
-                    COM_DO_OR_THROW(filter->QueryInterface<IPersistStream>(&persistStream));
-                    COM_DO_OR_THROW(persistStream->Load(PIMPL_(writeStream)->OpenReadStream()));
-                }
-                if (PIMPL_(filterClsid) == __uuidof(Filter))
-                {
-                    // propagate recursion depth
-                    auto filter4Archives = IFilter4ArchivesPtr();
-                    COM_DO_OR_THROW(filter->QueryInterface<IFilter4Archives>(&filter4Archives));
-                    filter4Archives->SetRecursionDepth(PIMPL_(recursionDepth));
-                }
-                COM_DO_OR_THROW(PIMPL_(attributes).Init(filter));
-
-                // query all chunks (unless the task got aborted)
-                auto consecutiveErrors = DWORD(0);
-                while (!PIMPL_(aborted))
-                {
-                    auto chunk = CachedChunk::FromFilter(filter);
-                    if (chunk.Code == FILTER_E_END_OF_CHUNKS) { break; } // nothing more to come
-                    if (FAILED(chunk.Code))
-                    {
-                        if (PIMPL_(maxConsecutiveErrors) && ++consecutiveErrors >= *PIMPL_(maxConsecutiveErrors)) { break; } // too many failures in a row
-                    }
-                    else { consecutiveErrors = 0; } // got at least one valid chunk
-
-                    // enqueue the chunk
-                    PIMPL_LOCK_BEGIN(m);
-                    PIMPL_(chunks).push_back(chunk);
-                    PIMPL_LOCK_END;
-                    PIMPL_(cv).notify_all();
-                }
+                COM_DO_OR_THROW(initializeWithStream->Initialize(PIMPL_(writeStream)->OpenReadStream(), STGM_READ));
             }
-            catch (const std::bad_alloc&) { hr = E_OUTOFMEMORY; }
-            catch (const std::system_error & e) { hr = utils::hresult_from_system_error(e); }
-            catch (...) { hr = E_UNEXPECTED; }
+            else
+            {
+                // no IInitializeWithStream, try IPersistStream
+                auto persistStream = IPersistStreamPtr();
+                COM_DO_OR_THROW(filter->QueryInterface<IPersistStream>(&persistStream));
+                COM_DO_OR_THROW(persistStream->Load(PIMPL_(writeStream)->OpenReadStream()));
+            }
+            if (PIMPL_(filterClsid) == __uuidof(Filter))
+            {
+                // propagate recursion depth
+                auto filter4Archives = IFilter4ArchivesPtr();
+                COM_DO_OR_THROW(filter->QueryInterface<IFilter4Archives>(&filter4Archives));
+                filter4Archives->SetRecursionDepth(PIMPL_(recursionDepth));
+            }
+            COM_DO_OR_THROW(PIMPL_(attributes).Init(filter));
+
+            // query all chunks (unless the task got aborted)
+            auto consecutiveErrors = DWORD(0);
+            while (!PIMPL_(aborted))
+            {
+                auto chunk = CachedChunk::FromFilter(filter);
+                if (chunk.Code == FILTER_E_END_OF_CHUNKS) { break; } // nothing more to come
+                if (FAILED(chunk.Code))
+                {
+                    if (PIMPL_(maxConsecutiveErrors) && ++consecutiveErrors >= *PIMPL_(maxConsecutiveErrors)) { break; } // too many failures in a row
+                }
+                else { consecutiveErrors = 0; } // got at least one valid chunk
+
+                // enqueue the chunk
+                PIMPL_LOCK_BEGIN(m);
+                PIMPL_(chunks).push_back(chunk);
+                PIMPL_LOCK_END;
+                PIMPL_(cv).notify_all();
+            }
+
+            COM_THREAD_END(hr);
 
             // signal end and store the result
             PIMPL_LOCK_BEGIN(m);

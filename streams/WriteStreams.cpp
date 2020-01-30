@@ -56,7 +56,6 @@ public:
         COM_NOTHROW_BEGIN;
         PIMPL_LOCK_BEGIN(m);
         PIMPL_WAIT(m, cv, PIMPL_(bytesAvailable) >= size || PIMPL_(endOfFile));
-        if (PIMPL_(bytesAvailable) < size) { return E_BOUNDS; } // beyond EOF
         PIMPL_LOCK_END;
         COM_NOTHROW_END;
         return S_OK;
@@ -64,12 +63,7 @@ public:
 
     HRESULT WriteStream::WaitUntilEndOfFile() const noexcept
     {
-        COM_NOTHROW_BEGIN;
-        PIMPL_LOCK_BEGIN(m);
-        PIMPL_WAIT(m, cv, PIMPL_(endOfFile));
-        PIMPL_LOCK_END;
-        COM_NOTHROW_END;
-        return S_OK;
+        return WaitUntilAvailable(MAXULONGLONG);
     }
 
     STDMETHODIMP WriteStream::Write(const void* data, UINT32 size, UINT32* processedSize) noexcept
