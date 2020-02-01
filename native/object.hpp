@@ -34,7 +34,7 @@ namespace com
     /******************************************************************************/
 
     template <typename Type, typename Interface>
-    ptrdiff_t offset_of_interface()
+    constexpr ptrdiff_t offset_of_interface()
     {
         constexpr const auto not_null = intptr_t(8); // compiler could optimize null-pointer out
         return reinterpret_cast<intptr_t>(static_cast<Interface*>(static_cast<Type*>(reinterpret_cast<object*>(not_null)))) - not_null;

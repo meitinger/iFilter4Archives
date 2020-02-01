@@ -36,28 +36,28 @@ public:
     std::unordered_map<std::wstring, std::optional<CLSID>> cache;
     );
 
-    static const auto PersistentHandlerGuid = GUID{ 0x8cc8186e, 0x4618, 0x426d, { 0xb7, 0x45, 0x44, 0x42, 0xf7, 0xe7, 0xa5, 0x6a } };
-    static const auto NullPersistentHandlerGuid = GUID{ 0x098f2470, 0xbae0, 0x11cd, { 0xb5, 0x79, 0x08, 0x00, 0x2b, 0x20, 0xbf, 0xeb } };
+    constexpr static const auto PersistentHandlerGuid = GUID{ 0x8cc8186e, 0x4618, 0x426d, { 0xb7, 0x45, 0x44, 0x42, 0xf7, 0xe7, 0xa5, 0x6a } };
+    constexpr static const auto NullPersistentHandlerGuid = GUID{ 0x098f2470, 0xbae0, 0x11cd, { 0xb5, 0x79, 0x08, 0x00, 0x2b, 0x20, 0xbf, 0xeb } };
 
     namespace str
     {
         namespace guid
         {
-            static const auto CLSID_Filter = STR("{DD88FF21-CD20-449E-B0B1-E84B1911F381}");
-            static const auto IID_IFilter = STR("{89BCB740-6119-101A-BCB7-00DD010655AF}");
-            static const auto PersistentHandler = STR("{8CC8186E-4618-426D-B745-4442F7E7A56A}");
+            constexpr static const auto CLSID_Filter = STR("{DD88FF21-CD20-449E-B0B1-E84B1911F381}");
+            constexpr static const auto IID_IFilter = STR("{89BCB740-6119-101A-BCB7-00DD010655AF}");
+            constexpr static const auto PersistentHandler = STR("{8CC8186E-4618-426D-B745-4442F7E7A56A}");
         }
-        static const auto Sep = STR("\\");
-        static const auto CLSID = STR("CLSID");
-        static const auto Software_Classes = STR("SOFTWARE\\Classes");
-        static const auto Software_Classes_CLSID = STR("SOFTWARE\\Classes\\CLSID");
-        static const auto PersistentHandler = STR("PersistentHandler");
-        static const auto InprocServer32 = STR("InprocServer32");
-        static const auto ThreadingModel = STR("ThreadingModel");
-        static const auto Both = STR("Both");
-        static const auto PersistentAddinsRegistered = STR("PersistentAddinsRegistered");
-        static const auto iFilter4Archives = STR("iFilter4Archives");
-        static const auto iFilter4Archives_persistent_handler = STR("iFilter4Archives persistent handler");
+        constexpr static const auto Sep = STR("\\");
+        constexpr static const auto CLSID = STR("CLSID");
+        constexpr static const auto Software_Classes = STR("SOFTWARE\\Classes");
+        constexpr static const auto Software_Classes_CLSID = STR("SOFTWARE\\Classes\\CLSID");
+        constexpr static const auto PersistentHandler = STR("PersistentHandler");
+        constexpr static const auto InprocServer32 = STR("InprocServer32");
+        constexpr static const auto ThreadingModel = STR("ThreadingModel");
+        constexpr static const auto Both = STR("Both");
+        constexpr static const auto PersistentAddinsRegistered = STR("PersistentAddinsRegistered");
+        constexpr static const auto iFilter4Archives = STR("iFilter4Archives");
+        constexpr static const auto iFilter4Archives_persistent_handler = STR("iFilter4Archives persistent handler");
     }
 
     static std::optional<win32::guid> GetDefaultAsGuid(const win32::registry_key& key)
@@ -233,6 +233,7 @@ public:
         }
 
         return S_OK;
+
         COM_NOTHROW_END;
     }
 
@@ -305,6 +306,7 @@ public:
         }
 
         return everythingDeleted ? S_OK : S_FALSE;
+
         COM_NOTHROW_END;
     }
 }

@@ -1,6 +1,3 @@
-#pragma once
-
-#include "com.hpp"
 /*
  * iFilter4Archives
  * Copyright (C) 2019  Manuel Meitinger

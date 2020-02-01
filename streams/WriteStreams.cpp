@@ -56,9 +56,9 @@ public:
         COM_NOTHROW_BEGIN;
         PIMPL_LOCK_BEGIN(m);
         PIMPL_WAIT(m, cv, PIMPL_(bytesAvailable) >= size || PIMPL_(endOfFile));
+        return S_OK;
         PIMPL_LOCK_END;
         COM_NOTHROW_END;
-        return S_OK;
     }
 
     HRESULT WriteStream::WaitUntilEndOfFile() const noexcept
@@ -87,8 +87,8 @@ public:
         PIMPL_(bytesAvailable) += bytesWritten;
         PIMPL_LOCK_END;
         PIMPL_(cv).notify_all();
-
         return result;
+
         COM_NOTHROW_END;
     }
 
@@ -229,7 +229,7 @@ public:
                 bytesToWrite = static_cast<DWORD>(bytesToWriteRemaing);
             }
         }
-        auto const result = ::WriteFile(PIMPL_(fileHandle).get(), buffer, bytesToWrite, &bytesWritten, nullptr);
+        const auto result = ::WriteFile(PIMPL_(fileHandle).get(), buffer, bytesToWrite, &bytesWritten, nullptr);
         assert(bytesWritten <= bytesToWrite);
         PIMPL_(totalBytesWritten) += bytesWritten;
         PIMPL_(bytesWrittenSinceLastSizeCheck) += bytesWritten;

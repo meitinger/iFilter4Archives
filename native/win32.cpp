@@ -55,7 +55,7 @@ namespace win32
     /******************************************************************************/
 
     constexpr static const auto string_length = int(38);
-    constexpr static const auto string_format = L"{%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}";
+    constexpr static const auto string_format = STR("{%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}");
 
     guid::guid() noexcept : GUID() {}
 
@@ -64,7 +64,7 @@ namespace win32
     std::wstring guid::to_wstring() const
     {
         auto result = std::wstring(string_length + 1, CHR('\0'));
-        if (_snwprintf_s(result.data(), result.length(), string_length, string_format,
+        if (_snwprintf_s(result.data(), result.length(), string_length, string_format.c_str(),
                          Data1, Data2, Data3,
                          Data4[0], Data4[1], Data4[2], Data4[3],
                          Data4[4], Data4[5], Data4[6], Data4[7]) != string_length)
@@ -100,7 +100,7 @@ namespace win32
     {
         if (s.empty() || s.length() != string_length) { return false; }
         return _snwscanf_s(
-            s.data(), s.length(), string_format,
+            s.data(), s.length(), string_format.c_str(),
             &guid.Data1, &guid.Data2, &guid.Data3,
             &guid.Data4[0], &guid.Data4[1], &guid.Data4[2], &guid.Data4[3],
             &guid.Data4[4], &guid.Data4[5], &guid.Data4[6], &guid.Data4[7]

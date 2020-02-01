@@ -203,10 +203,11 @@ public:
         COM_CHECK_ARG(cAttributes == 0 || aAttributes != nullptr); // according to doc better than E_POINTER
         COM_CHECK_POINTER_AND_SET(pFlags, 0);
         if (!PIMPL_(stream)) { return E_FAIL; } // according to doc
-        COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_SET, nullptr)); // rewind the stream (necessary for iFiltTst)
-
         COM_NOTHROW_BEGIN;
-        PIMPL_(AbortAnyExtractionOrTasksAndReset)(); // according to ATL, this method might be called multiple times, so stop any running extraction
+
+        // prerequisites
+        PIMPL_(AbortAnyExtractionOrTasksAndReset)(); // Init method might be called multiple times, so stop any running extraction
+        COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_SET, nullptr)); // rewind the stream (necessary for iFiltTst)
 
         // capture the attributes and open the archive
         PIMPL_(attributes) = FilterAttributes(grfFlags, cAttributes, aAttributes);
@@ -214,7 +215,7 @@ public:
         const auto scanSize = UINT64(1 << 23); // taken from 7-Zip source
         COM_DO_OR_RETURN(PIMPL_(archive)->Open(streams::BridgeStream::CreateComInstance<sevenzip::IInStream>(PIMPL_(stream)), &scanSize, nullptr));
 
-        // start new extractor thread and set attributes
+        // start new extractor thread
         PIMPL_(extractionFinished) = false; // no need to sync yet
         PIMPL_(extractionResult) = S_OK;
         PIMPL_(extractor) = std::thread([PIMPL_CAPTURE, callback = this]()
@@ -236,8 +237,9 @@ public:
             PIMPL_LOCK_END;
             PIMPL_(cv).notify_all();
         });
-        COM_NOTHROW_END;
         return S_OK;
+
+        COM_NOTHROW_END;
     }
 
     STDMETHODIMP_(SCODE) Filter::GetChunk(STAT_CHUNK* pStat) noexcept // called from Windows thread
@@ -251,6 +253,7 @@ public:
             PIMPL_WAIT(m, cv, !PIMPL_(tasks).empty() || PIMPL_(extractionFinished));
             if (PIMPL_(tasks).empty())
             {
+                PIMPL_(currentChunk) = std::nullopt; // should already be the case
                 if (FAILED(PIMPL_(extractionResult)))
                 {
                     const auto hr = PIMPL_(extractionResult);
@@ -379,7 +382,7 @@ public:
             // wait for the task size to decrease and return whether to continue waiting
             PIMPL_LOCK_BEGIN(m);
             if (PIMPL_(tasks).empty()) { return false; }
-            auto const startSize = PIMPL_(tasks).size();
+            const auto startSize = PIMPL_(tasks).size();
             PIMPL_WAIT(m, cv, PIMPL_(tasks).size() < startSize || PIMPL_(abortExtraction));
             return !PIMPL_(abortExtraction);
             PIMPL_LOCK_END;
@@ -409,8 +412,8 @@ public:
     {
         COM_NOTHROW_BEGIN;
         EndExtractionTaskIfAny(PIMPL_(currentExtractTask), TranslateOperationResult(opRes));
-        COM_NOTHROW_END;
         return S_OK;
+        COM_NOTHROW_END;
     }
 
     //----------------------------------------------------------------------------//
@@ -427,7 +430,7 @@ public:
 public:
     ULONG flags;
     std::vector<FULLPROPSPEC> attributes;
-    std::vector<std::wstring> attributeNames;
+    std::list<std::wstring> attributeNames;
     );
 
     FilterAttributes::FilterAttributes(ULONG grfFlags, ULONG cAttributes, const FULLPROPSPEC* aAttributes) : PIMPL_INIT()
@@ -436,8 +439,7 @@ public:
         PIMPL_(attributes).resize(cAttributes);
         std::memcpy(PIMPL_(attributes).data(), aAttributes, sizeof(FULLPROPSPEC) * cAttributes);
 
-        // ensure the vector is large enough so that no string gets copied (and its c_str invalidated)
-        PIMPL_(attributeNames).reserve(cAttributes);
+        // use emplace_back with a list to ensure that no string gets reallocated
         for (auto i = ULONG(0); i < cAttributes; i++)
         {
             if (aAttributes[i].psProperty.ulKind == PRSPEC_LPWSTR)

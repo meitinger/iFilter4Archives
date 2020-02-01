@@ -49,8 +49,10 @@ public:
         {
             // get the lower-case extension
             PIMPL_(extensionCache).assign(std::filesystem::path(PIMPL_(Name)).extension());
-            const auto result = _wcslwr_s(PIMPL_(extensionCache).data(), PIMPL_(extensionCache).length() + 1); // not portable, assumes data() == c_str()
+            PIMPL_(extensionCache).push_back(CHR('\0')); // _wcslwr_s expects a null terminator even if the length is given, and data() doesn't guarantee it
+            const auto result = _wcslwr_s(PIMPL_(extensionCache).data(), PIMPL_(extensionCache).length());
             if (result != 0) { throw std::system_error(result, std::generic_category()); }
+            PIMPL_(extensionCache).pop_back();
             PIMPL_(extensionCacheValid) = true;
         }
         return PIMPL_(extensionCache);
@@ -67,14 +69,12 @@ public:
     {
         COM_CHECK_POINTER(stat);
 
-        stat->pwcsName = nullptr;
         if (includeName)
         {
             const auto sizeIncludingNullTerminator = (PIMPL_(Name).length() + 1) * sizeof(WCHAR);
-            const auto string = reinterpret_cast<LPOLESTR>(::CoTaskMemAlloc(sizeIncludingNullTerminator));
-            if (string == nullptr) { return E_OUTOFMEMORY; }
-            std::memcpy(string, PIMPL_(Name).c_str(), sizeIncludingNullTerminator); // must not fail afterwards or we leak memory
-            stat->pwcsName = string;
+            stat->pwcsName = reinterpret_cast<LPOLESTR>(::CoTaskMemAlloc(sizeIncludingNullTerminator));
+            if (stat->pwcsName == nullptr) { return E_OUTOFMEMORY; } // must not fail afterwards or we leak memory
+            std::memcpy(stat->pwcsName, PIMPL_(Name).c_str(), sizeIncludingNullTerminator);
         }
         stat->cbSize.QuadPart = PIMPL_(Size);
         stat->mtime = PIMPL_(ModificationTime);
@@ -110,7 +110,7 @@ public:
         if (archive == nullptr) { throw std::invalid_argument("archive"); }
 
         auto result = FileDescription();
-        result.PIMPL_(Name) = GetPropertyFromArchiveItem<std::wstring>(archive, index, sevenzip::PropertyId::Path, [](const auto& propVariant) { return std::wstring(::PropVariantToStringWithDefault(propVariant, L"")); });
+        result.PIMPL_(Name) = GetPropertyFromArchiveItem<std::wstring>(archive, index, sevenzip::PropertyId::Path, [](const auto& propVariant) { return std::wstring(::PropVariantToStringWithDefault(propVariant, STR("").c_str())); });
         result.PIMPL_(IsDirectory) = GetPropertyFromArchiveItem<bool>(archive, index, sevenzip::PropertyId::IsDir, [](const auto& propVariant) { return ::PropVariantToBooleanWithDefault(propVariant, false); });
         result.PIMPL_(Size) = GetPropertyFromArchiveItem<ULONGLONG>(archive, index, sevenzip::PropertyId::Size, [](const auto& propVariant) { return ::PropVariantToUInt64WithDefault(propVariant, MAXULONGLONG); });
         result.PIMPL_(ModificationTime) = GetFileTimePropertyFromArchiveItem(archive, index, sevenzip::PropertyId::MTime);

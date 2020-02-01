@@ -37,25 +37,29 @@ public:
     {
         COM_CHECK_POINTER(data);
         COM_CHECK_POINTER_AND_SET(processedSize, 0);
-    TryAgain:
+        auto alreadyTried = false;
+    try_again:
         auto positionBefore = ULARGE_INTEGER();
         COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_CUR, &positionBefore));
         auto bytesRead = ULONG(*processedSize);
         const auto result = PIMPL_(stream)->Read(data, size, &bytesRead);
         *processedSize = bytesRead;
+        if (!SUCCEEDED(result)) { return result; }
         auto positionAfter = ULARGE_INTEGER();
         COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_CUR, &positionAfter));
-        if (SUCCEEDED(result) && positionBefore.QuadPart + bytesRead != positionAfter.QuadPart)
+        if (positionBefore.QuadPart + bytesRead != positionAfter.QuadPart)
         {
             // It appears that the stream we get from Windows Search "jumps" to the end on some reads.
-            // This does _not_ happen with filtdump of iFiltTst. It does, however, also happen if we
+            // This does _not_ happen with filtdump or iFiltTst. It does, however, also happen if we
             // switch to STA and only let the main thread read from the stream, so MTA and accessing
             // the stream from different threads has nothing to do with it.
             // Luckily, rewinding and re-reading works.
+            if (alreadyTried) { return STG_E_READFAULT; }
             auto offset = LARGE_INTEGER();
             offset.QuadPart = positionBefore.QuadPart;
-            COM_DO_OR_RETURN(PIMPL_(stream)->Seek(offset, STREAM_SEEK_SET, &positionBefore));
-            goto TryAgain;
+            COM_DO_OR_RETURN(PIMPL_(stream)->Seek(offset, STREAM_SEEK_SET, nullptr));
+            alreadyTried = true;
+            goto try_again;
         }
         return result;
     }

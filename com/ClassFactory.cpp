@@ -40,6 +40,7 @@ namespace com
     STDMETHODIMP ClassFactory::LockServer(BOOL fLock) noexcept
     {
         COM_NOTHROW_BEGIN;
+
         auto lock = std::unique_lock(_mutex);
         if (fLock)
         {
@@ -58,8 +59,9 @@ namespace com
                 _lockedFactory = nullptr;
             }
         }
-        COM_NOTHROW_END;
         return S_OK;
+
+        COM_NOTHROW_END;
     }
 
     HRESULT ClassFactory::GetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv) noexcept
@@ -67,7 +69,7 @@ namespace com
         COM_CHECK_POINTER_AND_SET(ppv, nullptr);
         if (rclsid != __uuidof(Filter)) { return CLASS_E_CLASSNOTAVAILABLE; } // only handle com::Filter
 
-        // get a AddRef'd copy of a possible locked factory
+        // get a AddRef'd copy of a possibly locked factory
         auto factory = IClassFactoryPtr();
         COM_NOTHROW_BEGIN;
         auto lock = std::unique_lock(_mutex);

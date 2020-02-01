@@ -102,7 +102,7 @@ public:
             if (newId != PIMPL_(stat).idChunk) { throw std::invalid_argument("newId"); }
             return;
         }
-        idMap[PIMPL_(stat).idChunk] = newId;
+        idMap.insert_or_assign(PIMPL_(stat).idChunk, newId);
         PIMPL_(stat).idChunk = newId;
         if (PIMPL_(stat).idChunkSource != 0)
         {
