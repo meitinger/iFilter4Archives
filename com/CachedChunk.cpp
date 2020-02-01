@@ -102,14 +102,17 @@ public:
             if (newId != PIMPL_(stat).idChunk) { throw std::invalid_argument("newId"); }
             return;
         }
+
+        // If we were to follow the docs, we should ignore chunks with an id of zero.
+        // However, some iFilters use 0 for their first chunk, so we translate it anyway.
         idMap.insert_or_assign(PIMPL_(stat).idChunk, newId);
         PIMPL_(stat).idChunk = newId;
-        if (PIMPL_(stat).idChunkSource != 0)
-        {
-            // also try to map the source chunk id
-            const auto sourceIdEntry = idMap.find(PIMPL_(stat).idChunkSource);
-            PIMPL_(stat).idChunkSource = sourceIdEntry == idMap.end() ? 0 : sourceIdEntry->second;
-        }
+
+        // also try to map the source chunk id
+        const auto sourceIdEntry = idMap.find(PIMPL_(stat).idChunkSource);
+        PIMPL_(stat).idChunkSource = sourceIdEntry == idMap.end()
+            ? (!(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_TEXT) ? 0 : newId)
+            : sourceIdEntry->second;
         PIMPL_(mapped) = true;
     }
 
