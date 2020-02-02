@@ -37,8 +37,7 @@ public:
     {
         COM_CHECK_POINTER(data);
         COM_CHECK_POINTER_AND_SET(processedSize, 0);
-        auto alreadyTried = false;
-    try_again:
+
         auto positionBefore = ULARGE_INTEGER();
         COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_CUR, &positionBefore));
         auto bytesRead = ULONG(*processedSize);
@@ -53,13 +52,10 @@ public:
             // This does _not_ happen with filtdump or iFiltTst. It does, however, also happen if we
             // switch to STA and only let the main thread read from the stream, so MTA and accessing
             // the stream from different threads has nothing to do with it.
-            // Luckily, rewinding and re-reading works.
-            if (alreadyTried) { return STG_E_READFAULT; }
+            // Luckily, seeking always works.
             auto offset = LARGE_INTEGER();
-            offset.QuadPart = positionBefore.QuadPart;
+            offset.QuadPart = positionBefore.QuadPart + bytesRead;
             COM_DO_OR_RETURN(PIMPL_(stream)->Seek(offset, STREAM_SEEK_SET, nullptr));
-            alreadyTried = true;
-            goto try_again;
         }
         return result;
     }
