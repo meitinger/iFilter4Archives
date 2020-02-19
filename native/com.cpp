@@ -27,7 +27,7 @@
 
 namespace com
 {
-    static std::atomic<std::size_t> _object_count = 0;
+    static std::atomic<size_t> _object_count = 0;
 
     static void* offset_ptr(void* ptr, ptrdiff_t offset) noexcept
     {
@@ -133,7 +133,7 @@ namespace com
         return *this;
     }
 
-    std::size_t object::count() noexcept
+    size_t object::count() noexcept
     {
         return _object_count;
     }

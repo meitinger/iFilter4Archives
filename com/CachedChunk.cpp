@@ -44,7 +44,7 @@ public:
     std::wstring propName;
     std::vector<WCHAR> text;
     unique_propvariant_cache_ptr value;
-    std::size_t textOffset = 0;
+    size_t textOffset = 0;
     bool mapped = false;
     );
 

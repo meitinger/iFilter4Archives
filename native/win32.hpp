@@ -46,7 +46,7 @@ namespace win32
         using traits_type = Traits;
         using value_type = CharT;
         using pointer = const CharT*;
-        using size_type = std::size_t;
+        using size_type = size_t;
 
         static_assert(std::is_same_v<value_type, typename traits_type::char_type>);
 

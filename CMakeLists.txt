@@ -11,4 +11,4 @@ add_subdirectory(native)
 add_subdirectory(streams)
 
 add_library(iFilter4Archives SHARED "iFilter4Archives.cpp" "iFilter4Archives.rc" "iFilter4Archives.def")
-target_link_libraries(iFilter4Archives com)
+target_link_libraries(iFilter4Archives com native)

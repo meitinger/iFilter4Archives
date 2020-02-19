@@ -62,7 +62,7 @@ namespace com
         object& operator= (const object&) noexcept;
         object& operator= (object&&) noexcept;
 
-        static std::size_t count() noexcept;
+        static size_t count() noexcept;
         static void create(std::unique_ptr<com::object> object_ptr, const com::object_interface_map& interface_map, IUnknown* outer_unknown, REFIID interface_id, void** com_object);
     };
 

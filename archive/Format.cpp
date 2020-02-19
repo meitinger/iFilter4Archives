@@ -56,7 +56,7 @@ public:
         propv.clear();
 
         // split extensions
-        auto offset = std::size_t();
+        auto offset = size_t();
         while ((offset = exts.find_last_of(CHR(' '))) != std::string::npos)
         {
             if (offset + 1 < exts.length()) // ignore empty extensions
