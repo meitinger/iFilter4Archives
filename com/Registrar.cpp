@@ -30,7 +30,7 @@
 
 namespace com
 {
-    SIMPLE_CLASS_IMPLEMENTATION(Registrar,
+    CLASS_IMPLEMENTATION(Registrar,
 public:
     std::mutex cacheMutex;
     std::unordered_map<std::wstring, std::optional<CLSID>> cache;

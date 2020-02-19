@@ -23,10 +23,9 @@
 #include "sevenzip.hpp"
 
 #include "CachedChunk.hpp"
+#include "FileBuffer.hpp"
 #include "Filter.hpp"
-#include "WriteStreams.hpp"
 
-#include <memory>
 #include <optional>
 
 namespace com
@@ -35,12 +34,12 @@ namespace com
 
     /******************************************************************************/
 
-    SIMPLE_CLASS_DECLARATION(ItemTask,
+    CLASS_DECLARATION(ItemTask,
 public:
-    ItemTask(const FilterAttributes& attributes, REFCLSID filterClsid, std::unique_ptr<streams::WriteStream> writeStream, ULONG recursionDepth);
+    ItemTask(const FilterAttributes& attributes, streams::FileBuffer& buffer, REFCLSID filterClsid, ULONG recursionDepth);
 
     void Run();
-    void SetEndOfExtraction(HRESULT hr);
+    void SetEndOfExtraction(HRESULT hr); // will not call COM
     void Abort();
     std::optional<CachedChunk> NextChunk(ULONG id);
     );

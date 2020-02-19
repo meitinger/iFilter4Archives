@@ -18,25 +18,25 @@
 
 #pragma once
 
-#include "com.hpp"
 #include "pimpl.hpp"
+#include "win32.hpp"
 
-#include <optional>
-#include <string>
+#include "FileDescription.hpp"
 
-namespace com
+namespace streams
 {
-    class Registrar; // registers this iFilter and looks up other iFilters in the registry
+    class FileBuffer; // memory or disk-backed buffer for extracted files
 
-/******************************************************************************/
+    /******************************************************************************/
 
-    CLASS_DECLARATION(Registrar,
+    CLASS_DECLARATION(FileBuffer,
 public:
-    Registrar();
+    explicit FileBuffer(const com::FileDescription& description);
 
-    std::optional<CLSID> FindClsid(const std::wstring& extension) const; // extension must be lower-case and dot-prefixed
+    PROPERTY_READONLY(const com::FileDescription&, Description, PIMPL_GETTER_ATTRIB);
 
-    static HRESULT RegisterServer() noexcept;
-    static HRESULT UnregisterServer() noexcept;
+    ULONG Append(const void* buffer, ULONG count); // tries to write the most bytes
+    ULONG Read(ULONGLONG offset, void* buffer, ULONG count) const; // tries to write the most bytes
+    void SetEndOfFile(); // will not call COM
     );
 }

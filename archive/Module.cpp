@@ -22,7 +22,7 @@
 
 namespace archive
 {
-    SIMPLE_CLASS_IMPLEMENTATION(Module,
+    CLASS_IMPLEMENTATION(Module,
 public:
     std::filesystem::path Path;
     win32::unique_library_ptr modulePtr;

@@ -30,7 +30,7 @@ namespace com
 
     /******************************************************************************/
 
-    SIMPLE_CLASS_DECLARATION(FileDescription,
+    CLASS_DECLARATION(FileDescription,
 private:
     FileDescription();
 
@@ -38,8 +38,8 @@ public:
     PROPERTY_READONLY(const std::wstring&, Name, PIMPL_GETTER_ATTRIB);
     PROPERTY_READONLY(const std::wstring&, Extension, const); // guaranteed to be lower-case and dot-prefixed
     PROPERTY_READONLY(bool, IsDirectory, PIMPL_GETTER_ATTRIB);
-    PROPERTY_READONLY(ULONGLONG, Size, PIMPL_GETTER_ATTRIB);
-    PROPERTY_READONLY(bool, SizeIsValid, const noexcept);
+    PROPERTY_READONLY(ULONGLONG, Size, const); // only throws if !SizeIsValid
+    PROPERTY_READONLY(bool, SizeIsValid, PIMPL_GETTER_ATTRIB);
     PROPERTY_READONLY(FILETIME, ModificationTime, PIMPL_GETTER_ATTRIB);
     PROPERTY_READONLY(FILETIME, CreationTime, PIMPL_GETTER_ATTRIB);
     PROPERTY_READONLY(FILETIME, AccessTime, PIMPL_GETTER_ATTRIB);

@@ -28,13 +28,13 @@ namespace com
     static auto _lockedFactory = IClassFactoryPtr();
     static auto _mutex = std::mutex();
 
-    COM_CLASS_IMPLEMENTATION(ClassFactory, );
+    CLASS_IMPLEMENTATION(ClassFactory, );
 
     ClassFactory::ClassFactory() : PIMPL_INIT() {}
 
     STDMETHODIMP ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject) noexcept
     {
-        return com::object::CreateComInstance<Filter>(pUnkOuter, riid, ppvObject);
+        return utils::make_com<Filter>(pUnkOuter, riid, ppvObject);
     }
 
     STDMETHODIMP ClassFactory::LockServer(BOOL fLock) noexcept
@@ -68,15 +68,15 @@ namespace com
     {
         COM_CHECK_POINTER_AND_SET(ppv, nullptr);
         if (rclsid != __uuidof(Filter)) { return CLASS_E_CLASSNOTAVAILABLE; } // only handle com::Filter
-
-        // get a AddRef'd copy of a possibly locked factory
         auto factory = IClassFactoryPtr();
         COM_NOTHROW_BEGIN;
+
+        // get a AddRef'd copy of a possibly locked factory
         auto lock = std::unique_lock(_mutex);
         factory = _lockedFactory;
-        COM_NOTHROW_END;
 
         // query the existing factory or create a new one
-        return factory ? factory->QueryInterface(riid, ppv) : com::object::CreateComInstance<ClassFactory>(nullptr, riid, ppv);
+        COM_NOTHROW_END;
+        return factory ? factory->QueryInterface(riid, ppv) : utils::make_com<ClassFactory>(nullptr, riid, ppv);
     }
 }

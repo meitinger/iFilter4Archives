@@ -32,7 +32,7 @@ namespace archive
 
     /******************************************************************************/
 
-    SIMPLE_CLASS_DECLARATION(Format,
+    CLASS_DECLARATION(Format,
 public:
     using ExtensionsCollection = std::unordered_set<std::wstring>;
 

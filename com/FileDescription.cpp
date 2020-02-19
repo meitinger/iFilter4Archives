@@ -25,7 +25,7 @@
 
 namespace com
 {
-    SIMPLE_CLASS_IMPLEMENTATION(FileDescription,
+    CLASS_IMPLEMENTATION(FileDescription,
 public:
     std::wstring Name;
     std::mutex extensionCacheMutex;
@@ -33,6 +33,7 @@ public:
     bool extensionCacheValid = false;
     bool IsDirectory;
     ULONGLONG Size;
+    bool SizeIsValid;
     FILETIME ModificationTime;
     FILETIME CreationTime;
     FILETIME AccessTime;
@@ -59,8 +60,12 @@ public:
         PIMPL_LOCK_END;
     }
     PIMPL_GETTER(FileDescription, bool, IsDirectory);
-    PIMPL_GETTER(FileDescription, ULONGLONG, Size);
-    bool FileDescription::GetSizeIsValid() const noexcept { return PIMPL_(Size) != 0 && PIMPL_(Size) != MAXULONGLONG; }
+    ULONGLONG FileDescription::GetSize() const
+    {
+        if (!PIMPL_(SizeIsValid)) { throw std::logic_error("!SizeIsValid"); }
+        return PIMPL_(Size);
+    }
+    PIMPL_GETTER(FileDescription, bool, SizeIsValid);
     PIMPL_GETTER(FileDescription, FILETIME, ModificationTime);
     PIMPL_GETTER(FileDescription, FILETIME, CreationTime);
     PIMPL_GETTER(FileDescription, FILETIME, AccessTime);
@@ -76,7 +81,10 @@ public:
             if (stat->pwcsName == nullptr) { return E_OUTOFMEMORY; } // must not fail afterwards or we leak memory
             std::memcpy(stat->pwcsName, PIMPL_(Name).c_str(), sizeIncludingNullTerminator);
         }
-        stat->cbSize.QuadPart = PIMPL_(Size);
+        if (PIMPL_(SizeIsValid))
+        {
+            stat->cbSize.QuadPart = PIMPL_(Size);
+        }
         stat->mtime = PIMPL_(ModificationTime);
         stat->ctime = PIMPL_(CreationTime);
         stat->atime = PIMPL_(AccessTime);
@@ -113,6 +121,7 @@ public:
         result.PIMPL_(Name) = GetPropertyFromArchiveItem<std::wstring>(archive, index, sevenzip::PropertyId::Path, [](const auto& propVariant) { return std::wstring(::PropVariantToStringWithDefault(propVariant, STR("").c_str())); });
         result.PIMPL_(IsDirectory) = GetPropertyFromArchiveItem<bool>(archive, index, sevenzip::PropertyId::IsDir, [](const auto& propVariant) { return ::PropVariantToBooleanWithDefault(propVariant, false); });
         result.PIMPL_(Size) = GetPropertyFromArchiveItem<ULONGLONG>(archive, index, sevenzip::PropertyId::Size, [](const auto& propVariant) { return ::PropVariantToUInt64WithDefault(propVariant, MAXULONGLONG); });
+        result.PIMPL_(SizeIsValid) = result.PIMPL_(Size) != MAXULONGLONG;
         result.PIMPL_(ModificationTime) = GetFileTimePropertyFromArchiveItem(archive, index, sevenzip::PropertyId::MTime);
         result.PIMPL_(CreationTime) = GetFileTimePropertyFromArchiveItem(archive, index, sevenzip::PropertyId::CTime);
         result.PIMPL_(AccessTime) = GetFileTimePropertyFromArchiveItem(archive, index, sevenzip::PropertyId::ATime);
@@ -131,6 +140,7 @@ public:
         result.PIMPL_(Name).assign(oleName.get());
         result.PIMPL_(IsDirectory) = false;
         result.PIMPL_(Size) = stat.cbSize.QuadPart;
+        result.PIMPL_(SizeIsValid) = true;
         result.PIMPL_(ModificationTime) = stat.mtime;
         result.PIMPL_(CreationTime) = stat.ctime;
         result.PIMPL_(AccessTime) = stat.atime;

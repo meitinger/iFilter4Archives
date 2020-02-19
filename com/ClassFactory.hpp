@@ -18,7 +18,8 @@
 
 #pragma once
 
-#include "object.hpp"
+#include "com.hpp"
+#include "pimpl.hpp"
 
 namespace com
 {
@@ -26,7 +27,7 @@ namespace com
 
     /******************************************************************************/
 
-    COM_CLASS_DECLARATION(ClassFactory, com::object IMPLEMENTS(IClassFactory), COM_VISIBLE(IClassFactory)
+    COM_CLASS_DECLARATION(ClassFactory, (IClassFactory),
 public:
     ClassFactory();
 

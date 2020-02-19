@@ -29,7 +29,7 @@ namespace com
 
     /******************************************************************************/
 
-    SIMPLE_CLASS_DECLARATION(CachedChunk,
+    CLASS_DECLARATION(CachedChunk,
 private:
     CachedChunk();
 

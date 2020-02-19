@@ -20,18 +20,13 @@
 
 #include "win32.hpp"
 
-#include <optional>
-
 namespace settings
 {
     DWORD concurrent_filter_threads();
     bool ignore_null_persistent_handler();
     bool ignore_registered_persistent_handler_if_archive();
-    std::optional<DWORD> max_buffer_size();
-    std::optional<DWORD> max_consecutive_error_chunks();
-    std::optional<DWORD> max_file_size();
-    std::optional<DWORD> min_available_memory();
-    std::optional<DWORD> min_free_disk_space();
+    ULONGLONG maximum_file_size();
+    SIZE_T maximum_buffer_size();
     DWORD recursion_depth_limit();
     bool use_internal_persistent_handler_if_none_registered();
 }

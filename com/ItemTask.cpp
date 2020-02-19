@@ -20,24 +20,23 @@
 
 #include "settings.hpp"
 
+#include "ReadStream.hpp"
+
 #include <atomic>
 #include <condition_variable>
 #include <list>
 #include <mutex>
-#include <new>
-#include <stdexcept>
 #include <thread>
 
 namespace com
 {
-    SIMPLE_CLASS_IMPLEMENTATION(ItemTask,
-                                PIMPL_CONSTRUCTOR(const FilterAttributes& attributes) : attributes(attributes) {}
+    CLASS_IMPLEMENTATION(ItemTask,
+                         PIMPL_CONSTRUCTOR(const FilterAttributes& attributes, streams::FileBuffer& buffer) : attributes(attributes), buffer(buffer) {}
 public:
     const FilterAttributes attributes;
+    streams::FileBuffer buffer;
     CLSID filterClsid;
-    std::unique_ptr<streams::WriteStream> writeStream;
     ULONG recursionDepth;
-    std::optional<DWORD> maxConsecutiveErrors;
     std::thread gatherer;
     std::mutex m;
     std::condition_variable cv;
@@ -49,23 +48,15 @@ public:
     std::atomic_bool aborted = false;
     );
 
-    ItemTask::ItemTask(const FilterAttributes& attributes, REFCLSID filterClsid, std::unique_ptr<streams::WriteStream> writeStream, ULONG recursionDepth) : PIMPL_INIT(attributes)
+    ItemTask::ItemTask(const FilterAttributes& attributes, streams::FileBuffer& buffer, REFCLSID filterClsid, ULONG recursionDepth) : PIMPL_INIT(attributes, buffer)
     {
-        if (!writeStream) { throw std::invalid_argument("writeStream"); }
-
         PIMPL_(filterClsid) = filterClsid;
-        PIMPL_(writeStream) = std::move(writeStream);
         PIMPL_(recursionDepth) = recursionDepth;
-        PIMPL_(maxConsecutiveErrors) = settings::max_consecutive_error_chunks();
-        if (PIMPL_(maxConsecutiveErrors))
-        {
-            PIMPL_(maxConsecutiveErrors) = *PIMPL_(maxConsecutiveErrors) / recursionDepth; // fewer in recursions
-        }
     }
 
     void ItemTask::Run()
     {
-        PIMPL_(gatherer) = std::thread([PIMPL_CAPTURE]()
+        PIMPL_(gatherer) = std::thread([PIMPL_CAPTURE]() -> void
         {
             auto hr = S_OK;
             COM_THREAD_BEGIN(COINIT_MULTITHREADED);
@@ -76,35 +67,29 @@ public:
             auto initializeWithStream = IInitializeWithStreamPtr();
             if (SUCCEEDED(filter->QueryInterface<IInitializeWithStream>(&initializeWithStream)))
             {
-                COM_DO_OR_THROW(initializeWithStream->Initialize(PIMPL_(writeStream)->OpenReadStream(), STGM_READ));
+                COM_DO_OR_THROW(initializeWithStream->Initialize(streams::ReadStream::CreateComInstance<IStream>(PIMPL_(buffer)), STGM_READ));
             }
             else
             {
                 // no IInitializeWithStream, try IPersistStream
                 auto persistStream = IPersistStreamPtr();
                 COM_DO_OR_THROW(filter->QueryInterface<IPersistStream>(&persistStream));
-                COM_DO_OR_THROW(persistStream->Load(PIMPL_(writeStream)->OpenReadStream()));
+                COM_DO_OR_THROW(persistStream->Load(streams::ReadStream::CreateComInstance<IStream>(PIMPL_(buffer))));
             }
             if (PIMPL_(filterClsid) == __uuidof(Filter))
             {
                 // propagate recursion depth
                 auto filter4Archives = IFilter4ArchivesPtr();
                 COM_DO_OR_THROW(filter->QueryInterface<IFilter4Archives>(&filter4Archives));
-                filter4Archives->SetRecursionDepth(PIMPL_(recursionDepth));
+                COM_DO_OR_THROW(filter4Archives->SetRecursionDepth(PIMPL_(recursionDepth)));
             }
             COM_DO_OR_THROW(PIMPL_(attributes).Init(filter));
 
             // query all chunks (unless the task got aborted)
-            auto consecutiveErrors = DWORD(0);
             while (!PIMPL_(aborted))
             {
                 auto chunk = CachedChunk::FromFilter(filter);
                 if (chunk.Code == FILTER_E_END_OF_CHUNKS) { break; } // nothing more to come
-                if (FAILED(chunk.Code))
-                {
-                    if (PIMPL_(maxConsecutiveErrors) && ++consecutiveErrors >= *PIMPL_(maxConsecutiveErrors)) { break; } // too many failures in a row
-                }
-                else { consecutiveErrors = 0; } // got at least one valid chunk
 
                 // enqueue the chunk
                 PIMPL_LOCK_BEGIN(m);
@@ -138,7 +123,7 @@ public:
         PIMPL_(isExtractionDone) = true;
         PIMPL_LOCK_END;
         PIMPL_(cv).notify_all();
-        PIMPL_(writeStream)->SetEndOfFile();
+        PIMPL_(buffer).SetEndOfFile();
     }
 
     void ItemTask::Abort()

@@ -37,14 +37,14 @@ namespace com
 
     /******************************************************************************/
 
-    SIMPLE_CLASS_IMPLEMENTATION(CachedChunk,
+    CLASS_IMPLEMENTATION(CachedChunk,
 public:
     SCODE statResult;
     STAT_CHUNK stat;
     std::wstring propName;
     std::vector<WCHAR> text;
     unique_propvariant_cache_ptr value;
-    size_t textOffset = 0;
+    std::size_t textOffset = 0;
     bool mapped = false;
     );
 
@@ -149,6 +149,10 @@ public:
                             // remove the text on failures
                             text.clear();
                             stat.flags = static_cast<CHUNKSTATE>(stat.flags & ~CHUNKSTATE::CHUNK_TEXT);
+                        }
+                        else
+                        {
+                            text.resize(offset);
                         }
                         break;
                     }

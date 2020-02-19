@@ -101,29 +101,35 @@ namespace win32
 
     /******************************************************************************/
 
-    struct HandleDeleter
+    struct handle_deleter
     {
         void operator()(HANDLE) noexcept;
     };
-    using unique_handle_ptr = std::unique_ptr<std::remove_pointer<HANDLE>::type, HandleDeleter>;
+    using unique_handle_ptr = std::unique_ptr<std::remove_pointer_t<HANDLE>, handle_deleter>;
 
-    struct LocalMemDeleter
+    struct localmem_deleter
     {
         void operator()(void*) noexcept;
     };
-    template <typename T> using unique_localmem_ptr = std::unique_ptr<T, LocalMemDeleter>;
+    template <typename T> using unique_localmem_ptr = std::unique_ptr<T, localmem_deleter>;
 
-    struct RegistryDeleter
+    struct registry_deleter
     {
         void operator()(HKEY) noexcept;
     };
-    using unique_registry_ptr = std::unique_ptr<std::remove_pointer<HKEY>::type, RegistryDeleter>;
+    using unique_registry_ptr = std::unique_ptr<std::remove_pointer_t<HKEY>, registry_deleter>;
 
-    struct LibraryDeleter
+    struct library_deleter
     {
         void operator()(HMODULE) noexcept;
     };
-    using unique_library_ptr = std::unique_ptr<std::remove_pointer<HMODULE>::type, LibraryDeleter>;
+    using unique_library_ptr = std::unique_ptr<std::remove_pointer_t<HMODULE>, library_deleter>;
+
+    struct fileview_delete
+    {
+        void operator()(LPVOID) noexcept;
+    };
+    using unique_fileview_ptr = std::unique_ptr<std::remove_pointer_t<LPVOID>, fileview_delete>;
 
     /******************************************************************************/
 
@@ -163,6 +169,7 @@ namespace utils
 {
     win32::unique_library_ptr get_current_module();
     std::filesystem::path get_module_file_path(HMODULE module_handle);
+    std::filesystem::path get_system_temp_path();
     std::wstring get_temp_file_name();
     std::filesystem::path get_temp_path();
     win32::unique_library_ptr load_module(win32::czwstring path);

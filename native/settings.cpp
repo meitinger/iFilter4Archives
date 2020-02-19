@@ -24,44 +24,44 @@
 
 namespace settings
 {
-    static std::optional<DWORD> read_dword(win32::czwstring name)
+    static DWORD read_dword(win32::czwstring name, DWORD default_value)
     {
         const auto key = win32::registry_key::local_machine().open_sub_key_readonly(STR("SOFTWARE\\iFilter4Archives"));
-        if (key) { return key->get_dword_value(name); }
-        return std::nullopt;
+        return key ? key->get_dword_value(name).value_or(default_value) : default_value;
     }
 
     DWORD concurrent_filter_threads()
     {
-        const auto value = read_dword(STR("ConcurrentFilterThreads"));
-        if (value) { return *value; }
-        return std::thread::hardware_concurrency();
+        return read_dword(STR("ConcurrentFilterThreads"), std::thread::hardware_concurrency());
     }
 
     bool ignore_null_persistent_handler()
     {
-        return read_dword(STR("IgnoreNullPersistentHandler")).value_or(1) != 0;
+        return read_dword(STR("IgnoreNullPersistentHandler"), 1);
     }
 
     bool ignore_registered_persistent_handler_if_archive()
     {
-        return read_dword(STR("IgnoreRegisteredPersistentHandlerIfArchive")).value_or(0) != 0;
+        return read_dword(STR("IgnoreRegisteredPersistentHandlerIfArchive"), 0);
     }
 
-    std::optional<DWORD> max_buffer_size() { return read_dword(STR("MaximumBufferSize")); }
+    ULONGLONG maximum_file_size()
+    {
+        return read_dword(STR("MaximumFileSize"), 16) * 1048576ull; // should be equal to MaxDownloadSize
+    }
 
-    std::optional<DWORD> max_consecutive_error_chunks() { return read_dword(STR("MaximumConsecutiveErrorChunks")); }
+    SIZE_T maximum_buffer_size()
+    {
+        return read_dword(STR("MaximumBufferSize"), 4194304); // should harmonize with FilterProcessMemoryQuota
+    }
 
-    std::optional<DWORD> max_file_size() { return read_dword(STR("MaximumFileSize")); }
-
-    std::optional<DWORD> min_available_memory() { return read_dword(STR("MinimumAvailableMemory")); }
-
-    std::optional<DWORD> min_free_disk_space() { return read_dword(STR("MinimumFreeDiskSpace")); }
-
-    DWORD recursion_depth_limit() { return read_dword(STR("RecursionDepthLimit")).value_or(1); }
+    DWORD recursion_depth_limit()
+    {
+        return read_dword(STR("RecursionDepthLimit"), 1);
+    }
 
     bool use_internal_persistent_handler_if_none_registered()
     {
-        return read_dword(STR("UseInternalPersistentHandlerIfNoneRegistered")).value_or(1) != 0;
+        return read_dword(STR("UseInternalPersistentHandlerIfNoneRegistered"), 1);
     }
 }

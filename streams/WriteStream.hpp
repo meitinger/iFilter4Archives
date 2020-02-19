@@ -20,23 +20,20 @@
 
 #include "com.hpp"
 #include "pimpl.hpp"
+#include "sevenzip.hpp"
 
-#include <optional>
-#include <string>
+#include "FileBuffer.hpp"
 
-namespace com
+namespace streams
 {
-    class Registrar; // registers this iFilter and looks up other iFilters in the registry
+    class WriteStream; // provides an sevenzip::ISequentialOutStream writer for a FileBuffer
 
-/******************************************************************************/
+    /******************************************************************************/
 
-    CLASS_DECLARATION(Registrar,
+    COM_CLASS_DECLARATION(WriteStream, (sevenzip::ISequentialOutStream),
 public:
-    Registrar();
+    explicit WriteStream(FileBuffer& buffer);
 
-    std::optional<CLSID> FindClsid(const std::wstring& extension) const; // extension must be lower-case and dot-prefixed
-
-    static HRESULT RegisterServer() noexcept;
-    static HRESULT UnregisterServer() noexcept;
+    STDMETHOD(Write)(const void* data, UINT32 size, UINT32* processedSize) noexcept override;
     );
 }

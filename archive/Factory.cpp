@@ -26,7 +26,7 @@
 
 namespace archive
 {
-    SIMPLE_CLASS_IMPLEMENTATION(Factory,
+    CLASS_IMPLEMENTATION(Factory,
 public:
     FormatsCollection Formats;
     );

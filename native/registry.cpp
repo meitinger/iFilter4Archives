@@ -188,7 +188,7 @@ namespace win32
         auto string_buffer = std::vector<WCHAR>(MAX_PATH);
         while (true)
         {
-            auto size_including_null_terminator = static_cast<DWORD>(string_buffer.size() * sizeof(WCHAR));
+            auto size_in_bytes = static_cast<DWORD>(string_buffer.size() * sizeof(WCHAR));
             const auto error_code = ::RegGetValueW
             (
                 get(),
@@ -197,13 +197,13 @@ namespace win32
                 RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ | (!allow_expand ? RRF_NOEXPAND : 0),
                 nullptr,
                 reinterpret_cast<PVOID>(string_buffer.data()),
-                &size_including_null_terminator
+                &size_in_bytes
             );
             switch (error_code)
             {
-            case ERROR_SUCCESS: return std::wstring(string_buffer.data(), (size_including_null_terminator / sizeof(WCHAR)) - 1);
+            case ERROR_SUCCESS: return std::wstring(string_buffer.data()); // RegGetValueW always null terminates but might append garbage
             case ERROR_MORE_DATA:
-                string_buffer.resize(size_including_null_terminator / sizeof(WCHAR));
+                string_buffer.resize(size_in_bytes / sizeof(WCHAR));
                 continue;
             case ERROR_FILE_NOT_FOUND: return std::nullopt;
             default: throw errors::registry_error(_path, name, error_code);

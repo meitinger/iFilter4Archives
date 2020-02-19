@@ -32,7 +32,7 @@ namespace archive
 
     /******************************************************************************/
 
-    SIMPLE_CLASS_DECLARATION(Factory,
+    CLASS_DECLARATION(Factory,
 private:
     Factory();
 

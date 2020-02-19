@@ -18,28 +18,25 @@
 
 #pragma once
 
-#include "object.hpp"
+#include "com.hpp"
+#include "pimpl.hpp"
 
-#include "FileDescription.hpp"
-#include "WriteStreams.hpp"
+#include "FileBuffer.hpp"
 
 namespace streams
 {
-    class ReadStream; // base class, handles common ::IStream stuff
-    class BufferReadStream; // reads decompressed data from memory
-    class FileReadStream; // reads decompressed data from a temporary file
+    class ReadStream; // provides an ::IStream reader for a FileBuffer
 
     /******************************************************************************/
 
-    COM_CLASS_DECLARATION(ReadStream, com::object IMPLEMENTS(IStream), COM_VISIBLE(IStream)
-protected:
-    explicit ReadStream(const com::FileDescription& description);
-
-    virtual IStreamPtr CloneInternal() const = 0;
-
+    COM_CLASS_DECLARATION(ReadStream, (IStream),
 public:
+    explicit ReadStream(FileBuffer& buffer);
+
+    STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead) noexcept override;
     STDMETHOD(Write)(const void* pv, ULONG cb, ULONG* pcbWritten) noexcept override;
     STDMETHOD(SetSize)(ULARGE_INTEGER libNewSize) noexcept override;
+    STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) noexcept override;
     STDMETHOD(CopyTo)(IStream* pstm, ULARGE_INTEGER cb, ULARGE_INTEGER* pcbRead, ULARGE_INTEGER* pcbWritten) noexcept override;
     STDMETHOD(Commit)(DWORD grfCommitFlags) noexcept override;
     STDMETHOD(Revert)(void) noexcept override;
@@ -47,31 +44,5 @@ public:
     STDMETHOD(UnlockRegion)(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb, DWORD dwLockType) noexcept override;
     STDMETHOD(Stat)(STATSTG* pstatstg, DWORD grfStatFlag) noexcept override;
     STDMETHOD(Clone)(IStream** ppstm) noexcept override;
-    );
-
-    /******************************************************************************/
-
-    COM_CLASS_DECLARATION(BufferReadStream, ReadStream,
-protected:
-    IStreamPtr CloneInternal() const override;
-
-public:
-    explicit BufferReadStream(const BufferWriteStream& source);
-
-    STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead) noexcept override;
-    STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) noexcept override;
-    );
-
-    /******************************************************************************/
-
-    COM_CLASS_DECLARATION(FileReadStream, ReadStream,
-protected:
-    IStreamPtr CloneInternal() const override;
-
-public:
-    explicit FileReadStream(const FileWriteStream& source);
-
-    STDMETHOD(Read)(void* pv, ULONG cb, ULONG* pcbRead) noexcept override;
-    STDMETHOD(Seek)(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER* plibNewPosition) noexcept override;
     );
 }

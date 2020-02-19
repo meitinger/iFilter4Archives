@@ -18,7 +18,8 @@
 
 #pragma once
 
-#include "object.hpp"
+#include "com.hpp"
+#include "pimpl.hpp"
 #include "sevenzip.hpp"
 
 namespace com
@@ -37,10 +38,7 @@ namespace com
 
     /******************************************************************************/
 
-    COM_CLASS_DECLARATION(Filter, com::object
-                          IMPLEMENTS(IFilter) IMPLEMENTS(IInitializeWithStream) IMPLEMENTS(IPersistStream) IMPLEMENTS(IPersistFile)
-                          IMPLEMENTS(sevenzip::IArchiveExtractCallback) IMPLEMENTS(IFilter4Archives),
-                          COM_VISIBLE(IFilter, IInitializeWithStream, IPersistStream, IPersistFile, IFilter4Archives)
+    COM_CLASS_DECLARATION_EXTENDS(Filter, (public sevenzip::IArchiveExtractCallback), (IFilter, IInitializeWithStream, IPersistStream, IPersistFile, IFilter4Archives),
 public:
     Filter();
 
@@ -75,7 +73,7 @@ public:
 
     /******************************************************************************/
 
-    SIMPLE_CLASS_DECLARATION(FilterAttributes,
+    CLASS_DECLARATION(FilterAttributes,
 public:
     FilterAttributes(ULONG grfFlags, ULONG cAttributes, const FULLPROPSPEC* aAttributes);
 

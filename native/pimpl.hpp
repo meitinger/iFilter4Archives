@@ -52,16 +52,6 @@
 #else
 #define PIMPL_CAPTURE assert_pimpl = ([pImpl = pImpl.get()](){assert(pImpl); return pImpl;})
 #endif
-#define PIMPL_COPY(src) \
-    do { \
-        assert(src.pImpl); \
-        pImpl = src.pImpl; \
-    } while (0)
-#define PIMPL_MOVE(src) \
-    do { \
-        assert(src.pImpl); \
-        pImpl = std::move(src.pImpl); \
-    } while (0)
 #define PIMPL_INIT(...) pImpl(std::make_shared<impl>(__VA_ARGS__))
 #define PIMPL_GETTER_ATTRIB const noexcept
 #define PIMPL_GETTER(className, propertyType, propertyName) \
@@ -95,22 +85,31 @@
 
 /******************************************************************************/
 
-#define SIMPLE_CLASS_DECLARATION(className, ...) \
-    class className \
+#define _CLASS_INLINE(...) __VA_ARGS__
+
+#define CLASS_DECLARATION(className, ...) \
+    _CLASS_DECLARATION(className, className, __VA_ARGS__)
+
+#define CLASS_DECLARATION_EXTENDS(className, baseClasses, ...) \
+    _CLASS_DECLARATION(className, className : _CLASS_INLINE baseClasses, __VA_ARGS__)
+
+#define _CLASS_DECLARATION(className, classDefinition, ...) \
+    class classDefinition \
     { \
-        public: ~className() noexcept; \
-        public: className(className&&) noexcept; \
-        public: className& operator= (className&&) noexcept; \
+        private: using self = className; \
+        public: virtual ~className() noexcept; \
         public: className(const className&) noexcept; \
+        public: className(className&&) noexcept; \
         public: className& operator= (const className&) noexcept; \
+        public: className& operator= (className&&) noexcept; \
         private: PIMPL; \
         __VA_ARGS__ \
     }
 
-#define SIMPLE_CLASS_IMPLEMENTATION(className, ...) \
+#define CLASS_IMPLEMENTATION(className, ...) \
     className::~className() noexcept = default; \
-    className::className(const className& obj) noexcept { PIMPL_COPY(obj); } \
-    className::className(className&& obj) noexcept { PIMPL_MOVE(obj); } \
-    className& className::operator= (const className& obj) noexcept { if (this != std::addressof(obj)) { PIMPL_COPY(obj); } return *this; } \
-    className& className::operator= (className&& obj) noexcept { if (this != std::addressof(obj)) { PIMPL_MOVE(obj); } return *this; } \
+    className::className(const className&) noexcept = default; \
+    className::className(className&&) noexcept = default; \
+    className& className::operator= (const className&) noexcept = default; \
+    className& className::operator= (className&&) noexcept = default; \
     PIMPL_IMPL(className, __VA_ARGS__)

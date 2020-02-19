@@ -29,7 +29,7 @@ namespace archive
 
     /******************************************************************************/
 
-    SIMPLE_CLASS_DECLARATION(Module,
+    CLASS_DECLARATION(Module,
 public:
     Module(const std::filesystem::path& path);
 

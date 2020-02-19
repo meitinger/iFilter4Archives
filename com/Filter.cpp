@@ -24,9 +24,10 @@
 #include "CachedChunk.hpp"
 #include "Factory.hpp"
 #include "FileDescription.hpp"
+#include "FileBuffer.hpp"
 #include "ItemTask.hpp"
 #include "Registrar.hpp"
-#include "WriteStreams.hpp"
+#include "WriteStream.hpp"
 
 #include <atomic>
 #include <cassert>
@@ -71,8 +72,8 @@ namespace com
 
     /******************************************************************************/
 
-    COM_CLASS_IMPLEMENTATION(Filter,
-                             PIMPL_DECONSTRUCTOR() { AbortAnyExtractionOrTasksAndReset(); }
+    CLASS_IMPLEMENTATION(Filter,
+                         PIMPL_DECONSTRUCTOR() { AbortAnyExtractionOrTasksAndReset(); }
 public:
     // used exclusively in the Windows thread
     std::optional<FilterAttributes> attributes;
@@ -134,41 +135,7 @@ public:
 
     //----------------------------------------------------------------------------//
 
-    static std::unique_ptr<streams::WriteStream> CreateWriteStream(FileDescription description, std::function<bool()> waiter)
-    {
-        // unknown sizes result in a file stream
-        if (!description.SizeIsValid) { return std::make_unique<streams::FileWriteStream>(description); }
-        const auto requiredSize = description.Size;
-
-        // ensure the file is not too large in general
-        const auto maxFileSize = settings::max_file_size();
-        if (maxFileSize && *maxFileSize < requiredSize) { return false; }
-
-        // since in-memory decompression is preferred, check if the file fits in memory
-        const auto maxBufferSize = settings::max_buffer_size();
-        if (!maxBufferSize || requiredSize <= *maxBufferSize)
-        {
-            auto availableMemory = size_t(0);
-            while (streams::BufferWriteStream::GetAvailableMemory(availableMemory))
-            {
-                if (availableMemory >= requiredSize) { return std::make_unique<streams::BufferWriteStream>(description); }
-                if (!waiter()) { break; } // wait for other tasks to complete before rechecking available memory
-            }
-        }
-
-        // too large for memory, ensure enough free disk space
-        auto freeDiskSpace = size_t(0);
-        while (streams::FileWriteStream::GetFreeDiskSpace(freeDiskSpace))
-        {
-            if (freeDiskSpace >= requiredSize) { return std::make_unique<streams::FileWriteStream>(description); }
-            if (!waiter()) { break; } // wait for other tasks to complete before rechecking free disk space
-        }
-
-        // simply too big
-        return nullptr;
-    }
-
-    static void EndExtractionTaskIfAny(std::optional<ItemTask>& task, HRESULT hr = S_OK)
+    static void EndExtractionTaskIfAny(std::optional<ItemTask>& task, HRESULT hr = S_OK) // will not call COM
     {
         // end and clear the task if there is one
         if (task)
@@ -218,17 +185,19 @@ public:
         // start new extractor thread
         PIMPL_(extractionFinished) = false; // no need to sync yet
         PIMPL_(extractionResult) = S_OK;
-        PIMPL_(extractor) = std::thread([PIMPL_CAPTURE, callback = this]()
+        PIMPL_(extractor) = std::thread([PIMPL_CAPTURE, callback = this]() -> void
         {
-            // try to extract everything
             auto hr = S_OK;
             COM_THREAD_BEGIN(COINITBASE_MULTITHREADED);
+
+            // try to extract everything
             COM_DO_OR_THROW(PIMPL_(archive)->Extract(nullptr, MAXUINT32, 0, &ExtractCallbackForwarder(callback)));
             COM_DO_OR_THROW(PIMPL_(archive)->Close());
+
             COM_THREAD_END(hr);
 
             // necessary if 7-Zip formats don't call SetOperationResult, this must succeed to avoid deadlocks
-            EndExtractionTaskIfAny(PIMPL_(currentExtractTask));
+            EndExtractionTaskIfAny(PIMPL_(currentExtractTask)); // will not call COM
 
             // signal finished
             PIMPL_LOCK_BEGIN(m);
@@ -356,42 +325,32 @@ public:
         COM_CHECK_POINTER_AND_SET(outStream, nullptr); // if we return S_OK with outStream set to NULL the entry is skipped
         COM_CHECK_STATE(PIMPL_(attributes) && PIMPL_(archive)); // ensure all required members are set
         if (askExtractMode != sevenzip::AskMode::Extract) { return S_OK; } // do nothing if not extracting (e.g. corrupted archive)
-
-        // reserve the com pointer and enter nothrow
-        auto streamPtr = sevenzip::ISequentialOutStreamPtr();
+        auto streamPtr = sevenzip::ISequentialOutStreamPtr(); // reserve the com pointer and enter nothrow
         COM_NOTHROW_BEGIN;
 
-        // there shouldn't be any pending task (if 7-Zip calls SetOperationResult), but make sure of it anyway
+        // there shouldn't be a pending task (if 7-Zip calls SetOperationResult), but make sure of it anyway
         EndExtractionTaskIfAny(PIMPL_(currentExtractTask));
 
         // preliminary checks on the file type
         const auto fileDescription = FileDescription::FromArchiveItem(PIMPL_(archive), index);
         if (fileDescription.IsDirectory) { return S_OK; } // only handle files
+        if (!fileDescription.SizeIsValid || fileDescription.Size > settings::maximum_file_size()) { return S_OK; } // file size unknown or too large
         const auto clsid = PIMPL_(registrar).FindClsid(fileDescription.Extension);
         if (!clsid) { return S_OK; } // no filter available
         if (*clsid == __uuidof(Filter) && PIMPL_(recursionDepth) >= settings::recursion_depth_limit()) { return S_OK; } // limit recursion
 
+        // limit concurrency
         PIMPL_LOCK_BEGIN(m);
-        PIMPL_WAIT(m, cv, PIMPL_(tasks).size() <= settings::concurrent_filter_threads() || PIMPL_(abortExtraction)); // limit concurrency
+        PIMPL_WAIT(m, cv, PIMPL_(tasks).size() <= settings::concurrent_filter_threads() || PIMPL_(abortExtraction));
         if (PIMPL_(abortExtraction)) { return E_ABORT; } // this will abort the entire extraction, not just the current entry
         PIMPL_LOCK_END;
 
-        // determine what kind of streams to use and wait until enough storage is available
-        auto writeStream = CreateWriteStream(fileDescription, [&]()
-        {
-            // wait for the task size to decrease and return whether to continue waiting
-            PIMPL_LOCK_BEGIN(m);
-            if (PIMPL_(tasks).empty()) { return false; }
-            const auto startSize = PIMPL_(tasks).size();
-            PIMPL_WAIT(m, cv, PIMPL_(tasks).size() < startSize || PIMPL_(abortExtraction));
-            return !PIMPL_(abortExtraction);
-            PIMPL_LOCK_END;
-        });
-        if (!writeStream) { return S_OK; } // there is really no good way to tell Windows that the file is too large, so just skip it
-        streamPtr = writeStream->GetComInterface<sevenzip::ISequentialOutStream>();
+        // allocate the buffer and get the 7-Zip stream interface
+        auto buffer = streams::FileBuffer(fileDescription);
+        streamPtr = streams::WriteStream::CreateComInstance<sevenzip::ISequentialOutStream>(buffer);
 
         // create and enqueue the task
-        PIMPL_(currentExtractTask) = ItemTask(*PIMPL_(attributes), *clsid, std::move(writeStream), PIMPL_(recursionDepth) + 1);
+        PIMPL_(currentExtractTask) = ItemTask(*PIMPL_(attributes), buffer, *clsid, PIMPL_(recursionDepth) + 1);
         PIMPL_LOCK_BEGIN(m);
         PIMPL_(tasks).push_back(*PIMPL_(currentExtractTask));
         PIMPL_LOCK_END;
@@ -411,8 +370,10 @@ public:
     STDMETHODIMP Filter::SetOperationResult(sevenzip::OperationResult opRes) noexcept // called from extraction thread
     {
         COM_NOTHROW_BEGIN;
+
         EndExtractionTaskIfAny(PIMPL_(currentExtractTask), TranslateOperationResult(opRes));
         return S_OK;
+
         COM_NOTHROW_END;
     }
 
@@ -426,7 +387,7 @@ public:
 
     /******************************************************************************/
 
-    SIMPLE_CLASS_IMPLEMENTATION(FilterAttributes,
+    CLASS_IMPLEMENTATION(FilterAttributes,
 public:
     ULONG flags;
     std::vector<FULLPROPSPEC> attributes;

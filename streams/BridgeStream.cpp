@@ -22,7 +22,7 @@
 
 namespace streams
 {
-    COM_CLASS_IMPLEMENTATION(BridgeStream,
+    CLASS_IMPLEMENTATION(BridgeStream,
 public:
     IStreamPtr stream;
     );

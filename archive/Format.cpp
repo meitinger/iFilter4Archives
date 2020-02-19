@@ -22,8 +22,8 @@
 
 namespace archive
 {
-    SIMPLE_CLASS_IMPLEMENTATION(Format,
-                                PIMPL_CONSTRUCTOR(const Module& library) : Library(library) {}
+    CLASS_IMPLEMENTATION(Format,
+                         PIMPL_CONSTRUCTOR(const Module& library) : Library(library) {}
 public:
     const Module Library;
     GUID clsid;
@@ -56,7 +56,7 @@ public:
         propv.clear();
 
         // split extensions
-        auto offset = size_t();
+        auto offset = std::size_t();
         while ((offset = exts.find_last_of(CHR(' '))) != std::string::npos)
         {
             if (offset + 1 < exts.length()) // ignore empty extensions

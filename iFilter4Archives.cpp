@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "object.hpp"
+#include "com.hpp"
 
 #include "ClassFactory.hpp"
 #include "Registrar.hpp"
@@ -38,7 +38,7 @@ STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
 
 STDAPI DllCanUnloadNow()
 {
-    return com::object::CanUnloadNow();
+    return com::object::count() > 0 ? S_FALSE : S_OK;
 }
 
 STDAPI DllRegisterServer()

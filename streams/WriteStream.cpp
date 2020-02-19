@@ -16,24 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include "com.hpp"
-#include "pimpl.hpp"
-#include "sevenzip.hpp"
+#include "WriteStream.hpp"
 
 namespace streams
 {
-    class BridgeStream; // allows 7-Zip to read from ::IStream
-
-    /******************************************************************************/
-
-    COM_CLASS_DECLARATION(BridgeStream, (sevenzip::IInStream, sevenzip::IStreamGetSize),
+    CLASS_IMPLEMENTATION(WriteStream,
+                         PIMPL_CONSTRUCTOR(FileBuffer& buffer) : buffer(buffer) {}
 public:
-    BridgeStream(IStreamPtr stream);
-
-    STDMETHOD(Read)(void* data, UINT32 size, UINT32* processedSize) noexcept override;
-    STDMETHOD(Seek)(INT64 offset, UINT32 seekOrigin, UINT64* newPosition) noexcept override;
-    STDMETHOD(GetSize)(UINT64* size) noexcept override;
+    FileBuffer buffer;
     );
+
+    WriteStream::WriteStream(FileBuffer& buffer) : PIMPL_INIT(buffer) {}
+
+    STDMETHODIMP WriteStream::Write(const void* data, UINT32 size, UINT32* processedSize) noexcept
+    {
+        COM_CHECK_POINTER(data);
+        if (processedSize != nullptr) { *processedSize = 0; }
+        COM_NOTHROW_BEGIN;
+
+        const auto bytesAppended = PIMPL_(buffer).Append(data, size);
+        if (processedSize != nullptr) { *processedSize = bytesAppended; }
+        return bytesAppended < size ? S_FALSE : S_OK;
+
+        COM_NOTHROW_END;
+    }
 }

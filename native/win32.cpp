@@ -18,6 +18,8 @@
 
 #include "win32.hpp"
 
+#include "registry.hpp"
+
 #include <stdexcept>
 #include <vector>
 
@@ -32,24 +34,29 @@
 
 namespace win32
 {
-    void HandleDeleter::operator()(HANDLE hObject) noexcept
+    void handle_deleter::operator()(HANDLE hObject) noexcept
     {
         ::CloseHandle(hObject); // might be called with INVALID_HANDLE_VALUE
     }
 
-    void LocalMemDeleter::operator()(void* hMem) noexcept
+    void localmem_deleter::operator()(void* hMem) noexcept
     {
         ::LocalFree(reinterpret_cast<HLOCAL>(hMem));
     }
 
-    void RegistryDeleter::operator()(HKEY hKey) noexcept
+    void registry_deleter::operator()(HKEY hKey) noexcept
     {
         ::RegCloseKey(hKey); // might be calles with HKEY_*
     }
 
-    void LibraryDeleter::operator()(HMODULE hLibModule) noexcept
+    void library_deleter::operator()(HMODULE hLibModule) noexcept
     {
         ::FreeLibrary(hLibModule);
+    }
+
+    void fileview_delete::operator()(LPVOID lpBaseAddress) noexcept
+    {
+        ::UnmapViewOfFile(lpBaseAddress);
     }
 
     /******************************************************************************/
@@ -136,6 +143,19 @@ namespace utils
         }
     }
 
+    std::filesystem::path get_system_temp_path()
+    {
+        const auto key = win32::registry_key::local_machine().open_sub_key_readonly(STR("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"));
+        if (key)
+        {
+            const auto temp = key->get_string_value(STR("TEMP"));
+            if (temp) { return *temp; }
+            const auto tmp = key->get_string_value(STR("TMP"));
+            if (tmp) { return *tmp; }
+        }
+        WIN32_THROW(ERROR_ENVVAR_NOT_FOUND);
+    }
+
     std::wstring get_temp_file_name()
     {
         return win32::guid::create_sequential().to_wstring().append(STR(".tmp"));
@@ -144,7 +164,7 @@ namespace utils
     std::filesystem::path get_temp_path()
     {
         auto buffer = std::vector<wchar_t>(MAX_PATH + 1); // "maximum possible return value is MAX_PATH + 1"
-        const auto length_excluding_null_terminator = GetTempPathW(static_cast<DWORD>(buffer.size()), buffer.data());
+        const auto length_excluding_null_terminator = ::GetTempPathW(static_cast<DWORD>(buffer.size()), buffer.data());
         WIN32_DO_OR_THROW(length_excluding_null_terminator);
         return std::wstring(buffer.data(), length_excluding_null_terminator);
     }

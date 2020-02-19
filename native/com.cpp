@@ -20,12 +20,154 @@
 
 #include "registry.hpp"
 
+#include <atomic>
 #include <future>
 #include <ios>
+#include <stdexcept>
+
+namespace com
+{
+    static std::atomic<std::size_t> _object_count = 0;
+
+    static void* offset_ptr(void* ptr, ptrdiff_t offset) noexcept
+    {
+        return reinterpret_cast<void*>(reinterpret_cast<intptr_t>(ptr) + offset);
+    }
+
+    class unknown : public IUnknown
+    {
+        const std::unique_ptr<object> _object_ptr;
+        const object_interface_map& _interface_map;
+        std::atomic<ULONG> _ref_count = 1;
+
+    public:
+
+        unknown(std::unique_ptr<object> object_ptr, const object_interface_map& interface_map) noexcept :
+            _object_ptr(std::move(object_ptr)),
+            _interface_map(interface_map)
+        {
+            _object_count++;
+        }
+
+        ~unknown() noexcept
+        {
+            _object_count--;
+        }
+
+        unknown(const unknown&) = delete;
+        unknown(unknown&&) = delete;
+        unknown& operator= (const unknown&) = delete;
+        unknown& operator= (unknown&&) = delete;
+
+        STDMETHODIMP unknown::QueryInterface(REFIID riid, void** ppvObject) noexcept override
+        {
+            COM_CHECK_POINTER_AND_SET(ppvObject, nullptr);
+            if (riid == IID_IUnknown)
+            {
+                *ppvObject = this;
+            }
+            else
+            {
+                const auto entry = _interface_map.find(riid); // not a noexcept, but operator== should never throw
+                if (entry == _interface_map.end()) { return E_NOINTERFACE; }
+                *ppvObject = offset_ptr(_object_ptr.get(), entry->second);
+            }
+            reinterpret_cast<IUnknown*>(*ppvObject)->AddRef(); // important, might get forwarded to outer unknown
+            return S_OK;
+        }
+
+        STDMETHODIMP_(ULONG) unknown::AddRef(void) noexcept override
+        {
+            return ++_ref_count;
+        }
+
+        STDMETHODIMP_(ULONG) unknown::Release(void) noexcept override
+        {
+            const auto new_ref_count = --_ref_count;
+            if (new_ref_count == 0)
+            {
+                delete this;
+            }
+            return new_ref_count;
+        }
+    };
+
+    //----------------------------------------------------------------------------//
+
+    IUnknown* object::unknown() noexcept
+    {
+        assert(_unknown);
+        return _unknown;
+    }
+
+    object::object() noexcept = default;
+
+    object::~object() noexcept = default;
+
+    object::object(const object& obj) noexcept
+    {
+        // source may be COM
+    }
+
+    object::object(object&& obj) noexcept
+    {
+        assert(!obj._unknown); // source must not be COM
+    }
+
+    object& object::operator= (const object& obj) noexcept
+    {
+        if (this != std::addressof(obj))
+        {
+            assert(!_unknown); // target must not be COM
+        }
+        return *this;
+    }
+
+    object& object::operator= (object&& obj) noexcept
+    {
+        if (this != std::addressof(obj))
+        {
+            assert(!_unknown); // neither source ...
+            assert(!obj._unknown); // ...nor target must be COM
+        }
+        return *this;
+    }
+
+    std::size_t object::count() noexcept
+    {
+        return _object_count;
+    }
+
+    void object::create(std::unique_ptr<com::object> object_ptr, const com::object_interface_map& interface_map, IUnknown* outer_unknown, REFIID interface_id, void** com_object)
+    {
+        if (!object_ptr || object_ptr->_unknown != nullptr) { throw std::invalid_argument("object_ptr"); }
+        if (com_object == nullptr) { COM_THROW(E_POINTER); }
+        *com_object = nullptr;
+
+        const auto inner_object = object_ptr.get();
+        if (outer_unknown != nullptr)
+        {
+            // aggregated, only IUnknown allowed
+            if (interface_id != IID_IUnknown) { COM_THROW(E_NOINTERFACE); } // see https://docs.microsoft.com/en-us/windows/win32/com/aggregation
+            inner_object->_unknown = outer_unknown; // all IUnknown calls are forwarded to the outer object
+            *com_object = static_cast<IUnknown*>(new com::unknown(std::move(object_ptr), interface_map)); // the inner IUnknown is returned to the outer object
+        }
+        else
+        {
+            // non-aggregated, query the interface if it exists
+            const auto entry = interface_map.find(interface_id);
+            if (entry == interface_map.end()) { COM_THROW(E_NOINTERFACE); }
+            inner_object->_unknown = static_cast<IUnknown*>(new com::unknown(std::move(object_ptr), interface_map)); // IUnknown is handled internally
+            *com_object = offset_ptr(inner_object, entry->second); // return the pointer to the requested interface
+        }
+    }
+}
+
+/******************************************************************************/
 
 namespace win32
 {
-    void CoTaskMemDeleter::operator()(void* buffer) noexcept
+    void cotaskmem_deleter::operator()(void* buffer) noexcept
     {
         ::CoTaskMemFree(reinterpret_cast<LPVOID>(buffer));
     }
