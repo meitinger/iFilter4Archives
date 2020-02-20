@@ -52,6 +52,7 @@ public:
     {
         PIMPL_(filterClsid) = filterClsid;
         PIMPL_(recursionDepth) = recursionDepth;
+        PIMPL_(chunks).push_back(CachedChunk::FromFileDescription(buffer.Description)); // first chunk will be the file name
     }
 
     void ItemTask::Run()
@@ -89,7 +90,7 @@ public:
             while (!PIMPL_(aborted))
             {
                 auto chunk = CachedChunk::FromFilter(filter);
-                if (chunk.Code == FILTER_E_END_OF_CHUNKS) { break; } // nothing more to come
+                if (FAILED(chunk.Code)) { break; } // Windows kills us if we report any error, do the same with the sub-filter
 
                 // enqueue the chunk
                 PIMPL_LOCK_BEGIN(m);

@@ -21,6 +21,8 @@
 #include "com.hpp"
 #include "pimpl.hpp"
 
+#include "FileDescription.hpp"
+
 #include <unordered_map>
 
 namespace com
@@ -44,6 +46,7 @@ public:
 
     void Map(ULONG newId, IdMap& idMap);
 
+    static CachedChunk FromFileDescription(const FileDescription& description);
     static CachedChunk FromFilter(IFilter* filter);
     static CachedChunk FromHResult(HRESULT hr);
     );

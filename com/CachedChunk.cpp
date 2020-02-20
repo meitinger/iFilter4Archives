@@ -39,13 +39,14 @@ namespace com
 
     CLASS_IMPLEMENTATION(CachedChunk,
 public:
+    bool isSpecialChunk;
     SCODE statResult;
     STAT_CHUNK stat;
     std::wstring propName;
     std::vector<WCHAR> text;
     unique_propvariant_cache_ptr value;
     size_t textOffset = 0;
-    bool mapped = false;
+    bool isMapped = false;
     );
 
     CachedChunk::CachedChunk() : PIMPL_INIT() {}
@@ -96,24 +97,67 @@ public:
 
     void CachedChunk::Map(ULONG newId, IdMap& idMap)
     {
-        if (PIMPL_(mapped))
+        if (PIMPL_(isMapped))
         {
             // ensure map isn't called twice with different ids
             if (newId != PIMPL_(stat).idChunk) { throw std::invalid_argument("newId"); }
             return;
         }
 
-        // If we were to follow the docs, we should ignore chunks with an id of zero.
-        // However, some iFilters use 0 for their first chunk, so we translate it anyway.
-        idMap.insert_or_assign(PIMPL_(stat).idChunk, newId);
-        PIMPL_(stat).idChunk = newId;
+        if (PIMPL_(isSpecialChunk))
+        {
+            PIMPL_(stat).idChunkSource = newId; // special chunks always reference themselves
+        }
+        else
+        {
+            // If we were to follow the docs, we should ignore chunks with an id of zero.
+            // However, some iFilters use 0 for their first chunk, so we translate it anyway.
+            idMap.insert_or_assign(PIMPL_(stat).idChunk, newId);
 
-        // also try to map the source chunk id
-        const auto sourceIdEntry = idMap.find(PIMPL_(stat).idChunkSource);
-        PIMPL_(stat).idChunkSource = sourceIdEntry == idMap.end()
-            ? (!(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_TEXT) ? 0 : newId)
-            : sourceIdEntry->second;
-        PIMPL_(mapped) = true;
+            // also try to map the source chunk id
+            const auto sourceIdEntry = idMap.find(PIMPL_(stat).idChunkSource);
+            PIMPL_(stat).idChunkSource = sourceIdEntry == idMap.end()
+                ? (!(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_TEXT) ? 0 : newId)
+                : sourceIdEntry->second;
+        }
+
+        PIMPL_(stat).idChunk = newId;
+        PIMPL_(isMapped) = true;
+    }
+
+    CachedChunk CachedChunk::FromFileDescription(const FileDescription& description)
+    {
+        auto result = CachedChunk();
+        result.PIMPL_(isSpecialChunk) = true;
+        result.PIMPL_(statResult) = S_OK;
+        auto& stat = result.PIMPL_(stat);
+        std::memset(&stat, 0, sizeof(STAT_CHUNK));
+        stat.breakType = CHUNK_BREAKTYPE::CHUNK_EOS;
+
+        // set the child property
+        auto& propName = result.PIMPL_(propName);
+        propName.assign(STR("urn:schemas.microsoft.com:container:child"));
+        stat.attribute.guidPropSet.Data1 = 0x560C36C0;
+        stat.attribute.guidPropSet.Data2 = 0x503A;
+        stat.attribute.guidPropSet.Data3 = 0x11CF;
+        stat.attribute.guidPropSet.Data4[0] = 0xBA;
+        stat.attribute.guidPropSet.Data4[1] = 0xA1;
+        stat.attribute.guidPropSet.Data4[2] = 0x00;
+        stat.attribute.guidPropSet.Data4[3] = 0x00;
+        stat.attribute.guidPropSet.Data4[4] = 0x4C;
+        stat.attribute.guidPropSet.Data4[5] = 0x75;
+        stat.attribute.guidPropSet.Data4[6] = 0x2A;
+        stat.attribute.guidPropSet.Data4[7] = 0x9A;
+        stat.attribute.psProperty.lpwstr = const_cast<LPWSTR>(propName.c_str());
+
+        // store the file name as text
+        stat.flags = CHUNKSTATE::CHUNK_TEXT;
+        auto& text = result.PIMPL_(text);
+        const auto& name = description.Name;
+        text.reserve(name.length());
+        text.assign(name.begin(), name.end());
+
+        return result;
     }
 
     CachedChunk CachedChunk::FromFilter(IFilter* filter)
@@ -121,6 +165,7 @@ public:
         if (filter == nullptr) { throw std::invalid_argument("filter"); }
 
         auto result = CachedChunk();
+        result.PIMPL_(isSpecialChunk) = false;
         auto& stat = result.PIMPL_(stat);
         if (SUCCEEDED(result.PIMPL_(statResult) = filter->GetChunk(&stat)))
         {
@@ -186,6 +231,7 @@ public:
 
         // for cases like FILTER_E_PASSWORD
         auto result = CachedChunk();
+        result.PIMPL_(isSpecialChunk) = true;
         result.PIMPL_(statResult) = hr;
         return result;
     }
