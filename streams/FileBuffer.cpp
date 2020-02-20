@@ -176,7 +176,7 @@ public:
                     WIN32_DO_OR_THROW(PIMPL_(fileView));
                 }
                 const auto bytesToReadThisPass = static_cast<ULONG>(std::min(PIMPL_(fileViewSize) - bytesBeforeOffset, bytesToReadRemaining));
-                std::memcpy(reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(buffer) + bytesRead), reinterpret_cast<const void*>(reinterpret_cast<std::uintptr_t>(PIMPL_(fileView).get()) + bytesBeforeOffset), bytesToReadThisPass);
+                std::memcpy(reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(buffer) + bytesRead), reinterpret_cast<const void*>(reinterpret_cast<uintptr_t>(PIMPL_(fileView).get()) + bytesBeforeOffset), bytesToReadThisPass);
                 bytesRead += bytesToReadThisPass;
                 bytesToReadRemaining -= bytesToReadThisPass;
             }

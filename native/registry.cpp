@@ -73,11 +73,11 @@ namespace errors
 
 namespace win32
 {
-#define REGISTRY_OPEN_SUB_KEY(desiredAcccess) \
+#define REGISTRY_OPEN_SUB_KEY(desiredAcccess, function, ...) \
     do { \
         auto key = registry_key(build_path(_path, name)); \
         auto nativeKey = HKEY(); \
-        const auto error_code = ::RegOpenKeyExW(get(), name.c_str(), 0, desiredAcccess, &nativeKey); \
+        const auto error_code = function(get(), name.c_str(), 0, desiredAcccess, &nativeKey, __VA_ARGS__); \
         key.reset(nativeKey); \
         switch (error_code) \
         { \
@@ -87,19 +87,19 @@ namespace win32
         } \
     } while (0)
 
-#define REGISTRY_CREATE_SUB_KEY(desiredAccess) \
+#define REGISTRY_CREATE_SUB_KEY(desiredAccess, function, ...) \
     do { \
         auto key = registry_key(build_path(_path, name)); \
         auto nativeKey = HKEY(); \
-        const auto error_code = ::RegCreateKeyExW(get(), name.c_str(), 0, nullptr, 0, desiredAccess, nullptr, &nativeKey, nullptr); \
+        const auto error_code = function(get(), name.c_str(), 0, nullptr, 0, desiredAccess, nullptr, &nativeKey, nullptr, __VA_ARGS__); \
         key.reset(nativeKey); \
         if (error_code != ERROR_SUCCESS) { throw errors::registry_error(_path, name, error_code); } \
         return key; \
     } while (0)
 
-#define REGISTRY_DELETE(function, ec) \
+#define REGISTRY_DELETE(function, ec, ...) \
     do { \
-        const auto error_code = function(get(), name.c_str()); \
+        const auto error_code = function(get(), name.c_str(), __VA_ARGS__); \
         switch (error_code) \
         { \
             case ERROR_SUCCESS: break; \
@@ -129,27 +129,52 @@ namespace win32
 
     std::optional<const registry_key> registry_key::open_sub_key_readonly(czwstring name) const
     {
-        REGISTRY_OPEN_SUB_KEY(KEY_READ);
+        REGISTRY_OPEN_SUB_KEY(KEY_READ, ::RegOpenKeyExW);
+    }
+
+    std::optional<const registry_key> registry_key::open_sub_key_readonly_transacted(czwstring name, const transaction& transaction) const
+    {
+        REGISTRY_OPEN_SUB_KEY(KEY_READ, ::RegOpenKeyTransactedW, transaction.handle(), nullptr);
     }
 
     std::optional<registry_key> registry_key::open_sub_key_writeable(czwstring name) const
     {
-        REGISTRY_OPEN_SUB_KEY(KEY_READ | KEY_WRITE);
+        REGISTRY_OPEN_SUB_KEY(KEY_READ | KEY_WRITE, ::RegOpenKeyExW);
+    }
+
+    std::optional<registry_key> registry_key::open_sub_key_writeable_transacted(czwstring name, const transaction& transaction) const
+    {
+        REGISTRY_OPEN_SUB_KEY(KEY_READ | KEY_WRITE, ::RegOpenKeyTransactedW, transaction.handle(), nullptr);
     }
 
     const registry_key registry_key::create_sub_key_readonly(czwstring name)
     {
-        REGISTRY_CREATE_SUB_KEY(KEY_READ);
+        REGISTRY_CREATE_SUB_KEY(KEY_READ, ::RegCreateKeyExW);
+    }
+
+    const registry_key registry_key::create_sub_key_readonly_transacted(czwstring name, const transaction& transaction)
+    {
+        REGISTRY_CREATE_SUB_KEY(KEY_READ, ::RegCreateKeyTransactedW, transaction.handle(), nullptr);
     }
 
     registry_key registry_key::create_sub_key_writeable(czwstring name)
     {
-        REGISTRY_CREATE_SUB_KEY(KEY_READ | KEY_WRITE);
+        REGISTRY_CREATE_SUB_KEY(KEY_READ | KEY_WRITE, ::RegCreateKeyExW);
+    }
+
+    registry_key registry_key::create_sub_key_writeable_transacted(czwstring name, const transaction& transaction)
+    {
+        REGISTRY_CREATE_SUB_KEY(KEY_READ | KEY_WRITE, ::RegCreateKeyTransactedW, transaction.handle(), nullptr);
     }
 
     void registry_key::delete_sub_key(czwstring name, bool throw_if_missing) const
     {
-        REGISTRY_DELETE(::RegDeleteKeyW, errors::registry_errc::key_missing);
+        REGISTRY_DELETE(::RegDeleteKeyExW, errors::registry_errc::key_missing, 0, 0);
+    }
+
+    void registry_key::delete_sub_key_transacted(czwstring name, const transaction& transaction, bool throw_if_missing) const
+    {
+        REGISTRY_DELETE(::RegDeleteKeyTransactedW, errors::registry_errc::key_missing, 0, 0, transaction.handle(), nullptr);
     }
 
     bool registry_key::empty() const

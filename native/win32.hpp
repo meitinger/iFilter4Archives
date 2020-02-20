@@ -19,6 +19,8 @@
 #pragma once
 
 #include <Windows.h>
+#pragma comment(lib, "KtmW32")
+#include <ktmw32.h>
 
 #include <cassert>
 #include <filesystem>
@@ -145,6 +147,17 @@ namespace win32
         static guid create_sequential();
         static guid parse(std::wstring_view s);
         static bool try_parse(std::wstring_view s, guid& guid);
+    };
+
+    /******************************************************************************/
+
+    class transaction : private win32::unique_handle_ptr
+    {
+    public:
+        transaction(czwstring description);
+        void commit();
+        HANDLE handle() const noexcept;
+        void rollback();
     };
 }
 

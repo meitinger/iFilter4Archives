@@ -113,6 +113,30 @@ namespace win32
             &guid.Data4[4], &guid.Data4[5], &guid.Data4[6], &guid.Data4[7]
         ) == 11;
     }
+
+    /******************************************************************************/
+
+    transaction::transaction(czwstring description)
+    {
+        reset(::CreateTransaction(nullptr, nullptr, TRANSACTION_DO_NOT_PROMOTE, 0, 0, 0, const_cast<LPWSTR>(description.c_str())));
+        if (get() == INVALID_HANDLE_VALUE) { release(); }
+        WIN32_DO_OR_THROW(get());
+    }
+
+    void transaction::commit()
+    {
+        WIN32_DO_OR_THROW(::CommitTransaction(get()));
+    }
+
+    HANDLE transaction::handle() const noexcept
+    {
+        return get();
+    }
+
+    void transaction::rollback()
+    {
+        WIN32_DO_OR_THROW(::RollbackTransaction(get()));
+    }
 }
 
 /******************************************************************************/

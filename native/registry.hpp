@@ -61,10 +61,15 @@ namespace win32
 
     public:
         std::optional<const registry_key> open_sub_key_readonly(czwstring name) const;
+        std::optional<const registry_key> open_sub_key_readonly_transacted(czwstring name, const transaction& transaction) const;
         std::optional<registry_key> open_sub_key_writeable(czwstring name) const;
+        std::optional<registry_key> open_sub_key_writeable_transacted(czwstring name, const transaction& transaction) const;
         const registry_key create_sub_key_readonly(czwstring name);
+        const registry_key create_sub_key_readonly_transacted(czwstring name, const transaction& transaction);
         registry_key create_sub_key_writeable(czwstring name);
+        registry_key create_sub_key_writeable_transacted(czwstring name, const transaction& transaction);
         void delete_sub_key(czwstring name, bool throw_if_missing = true) const; // const because ::RegDeleteKey is not affected by the rights of the current key
+        void delete_sub_key_transacted(czwstring name, const transaction& transaction, bool throw_if_missing = true) const; // const because ::RegDeleteKey is not affected by the rights of the current key
         bool empty() const;
         std::optional<DWORD> get_dword_value(czwstring name) const;
         std::optional<std::wstring> get_string_value(czwstring name, bool allow_expand = true) const;
