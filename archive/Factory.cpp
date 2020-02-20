@@ -23,6 +23,7 @@
 #include "Module.hpp"
 
 #include <filesystem>
+#include <limits>
 
 namespace archive
 {
@@ -61,7 +62,7 @@ public:
         {
             // only load dlls (I can't believe I have to resort to _wcsnicmp in C++)
             const auto& path = entry.path();
-            if (entry.is_directory() || _wcsnicmp(path.extension().c_str(), STR(".dll").c_str(), MAXSIZE_T)) { continue; }
+            if (entry.is_directory() || _wcsnicmp(path.extension().c_str(), STR(".dll").c_str(), std::numeric_limits<size_t>::max())) { continue; }
 
             // ignore errors
             try { LoadModule(formats, path); }

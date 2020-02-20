@@ -148,7 +148,7 @@ public:
         stat.attribute.guidPropSet.Data4[5] = 0x75;
         stat.attribute.guidPropSet.Data4[6] = 0x2A;
         stat.attribute.guidPropSet.Data4[7] = 0x9A;
-        stat.attribute.psProperty.lpwstr = const_cast<LPWSTR>(propName.c_str());
+        stat.attribute.psProperty.lpwstr = const_cast<wchar_t*>(propName.c_str());
 
         // store the file name as text
         stat.flags = CHUNKSTATE::CHUNK_TEXT;
