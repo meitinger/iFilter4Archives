@@ -232,7 +232,7 @@ public:
                 transaction
             );
             const auto existingHandler = GetDefaultAsGuid(extPersistentHandlerKey);
-            if (existingHandler) // TODO maybe NULL filter {098f2470-bae0-11cd-b579-08002b30bfeb}
+            if (existingHandler)
             {
                 // do not override existing hanlders unless it's the NULL filter
                 if (*existingHandler != NullPersistentHandlerGuid) { continue; }
