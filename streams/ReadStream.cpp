@@ -96,23 +96,24 @@ public:
         if (pcbRead != nullptr) { pcbRead->QuadPart = 0; }
         if (pcbWritten != nullptr) { pcbWritten->QuadPart = 0; }
         char buffer[8000];
-        while (cb.QuadPart > 0)
+        auto bytesToCopyRemaining = cb.QuadPart;
+        while (bytesToCopyRemaining > 0)
         {
-            const auto size = static_cast<ULONG>(std::min(cb.QuadPart, static_cast<ULONGLONG>(sizeof(buffer))));
+            const auto bytesToRead = static_cast<ULONG>(std::min(bytesToCopyRemaining, static_cast<ULONGLONG>(sizeof(buffer))));
 
             // read operation
-            auto read = ULONG(0);
-            COM_DO_OR_RETURN(Read(buffer, size, &read));
-            if (pcbRead != nullptr) { pcbRead->QuadPart += read; }
+            auto bytesRead = ULONG(0);
+            COM_DO_OR_RETURN(Read(buffer, bytesToRead, &bytesRead));
+            if (pcbRead != nullptr) { pcbRead->QuadPart += bytesRead; }
 
             // write operation
-            auto written = ULONG(0);
-            COM_DO_OR_RETURN(pstm->Write(buffer, read, &written));
-            if (pcbWritten != nullptr) { pcbWritten->QuadPart += written; }
+            auto bytesWritten = ULONG(0);
+            COM_DO_OR_RETURN(pstm->Write(buffer, bytesRead, &bytesWritten));
+            if (pcbWritten != nullptr) { pcbWritten->QuadPart += bytesWritten; }
 
             // check for EOF (according to docs)
-            if (read < size || written < read) { return S_FALSE; }
-            cb.QuadPart -= read;
+            if (bytesRead < bytesToRead || bytesWritten < bytesRead) { return S_FALSE; }
+            bytesToCopyRemaining -= bytesRead;
         }
         return S_OK;
     }

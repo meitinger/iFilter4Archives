@@ -327,9 +327,9 @@ public:
         return S_OK;
     }
 
-    STDMETHODIMP Filter::PrepareOperation(sevenzip::AskMode askExtractMode) noexcept { return S_OK; } // result sometimes ignored by 7-Zip
+    STDMETHODIMP Filter::PrepareOperation(sevenzip::AskMode askExtractMode) noexcept { return S_OK; } // return value sometimes ignored by 7-Zip
 
-    STDMETHODIMP Filter::SetOperationResult(sevenzip::OperationResult opRes) noexcept { return S_OK; } // ignore result (can't change these failures)
+    STDMETHODIMP Filter::SetOperationResult(sevenzip::OperationResult opRes) noexcept { return S_OK; } // ignore result (can't change these kinds of failures anyways)
 
     //----------------------------------------------------------------------------//
 

@@ -51,10 +51,10 @@ public:
         if (positionBefore.QuadPart + bytesRead != positionAfter.QuadPart)
         {
             // It appears that the stream we get from Windows Search "jumps" to the end on some reads.
-            // In addition, when such a jump occurs, the returned data is also not always valid.
+            // In addition, when such a jump occurs, the returned data is not always valid either.
             // This does _not_ happen with filtdump or iFiltTst. It does, however, also happen if we
             // switch to STA and only let the main thread read from the stream, so MTA and accessing
-            // the stream from different threads has nothing to do with it.
+            // the stream from different threads has apparently nothing to do with it.
             // Luckily, seeking always works.
             if (!isFirstTry)
             {

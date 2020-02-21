@@ -22,7 +22,6 @@
 
 #include <cassert>
 #include <memory>
-#include <new>
 #include <system_error>
 #include <type_traits>
 #include <unordered_map>
@@ -218,7 +217,7 @@ namespace utils
     constexpr ptrdiff_t offset_of_interface()
     {
         static_assert(std::is_base_of_v<Interface, Type>);
-        constexpr const auto not_null = intptr_t(0x00400000); // compiler could optimize null-pointer out
+        constexpr const auto not_null = intptr_t(0x00400000); // compiler will optimize null-pointer out
         return reinterpret_cast<intptr_t>(static_cast<Interface*>(static_cast<Type*>(reinterpret_cast<com::object*>(not_null)))) - not_null;
     }
 }

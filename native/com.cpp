@@ -23,6 +23,7 @@
 #include <atomic>
 #include <future>
 #include <ios>
+#include <new>
 #include <stdexcept>
 
 namespace com
