@@ -40,6 +40,7 @@ public:
 
         auto positionBefore = ULARGE_INTEGER();
         COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_CUR, &positionBefore));
+        auto isFirstTry = true;
     try_again:
         auto bytesRead = ULONG(*processedSize);
         const auto result = PIMPL_(stream)->Read(data, size, &bytesRead);
@@ -55,6 +56,11 @@ public:
             // switch to STA and only let the main thread read from the stream, so MTA and accessing
             // the stream from different threads has nothing to do with it.
             // Luckily, seeking always works.
+            if (!isFirstTry)
+            {
+                return STG_E_READFAULT;
+            }
+            isFirstTry = false;
             auto offset = LARGE_INTEGER();
             offset.QuadPart = positionBefore.QuadPart;
             COM_DO_OR_RETURN(PIMPL_(stream)->Seek(offset, STREAM_SEEK_SET, nullptr));
