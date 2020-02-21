@@ -40,6 +40,7 @@ public:
 
         auto positionBefore = ULARGE_INTEGER();
         COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_CUR, &positionBefore));
+    try_again:
         auto bytesRead = ULONG(*processedSize);
         const auto result = PIMPL_(stream)->Read(data, size, &bytesRead);
         *processedSize = bytesRead;
@@ -49,13 +50,15 @@ public:
         if (positionBefore.QuadPart + bytesRead != positionAfter.QuadPart)
         {
             // It appears that the stream we get from Windows Search "jumps" to the end on some reads.
+            // In addition, when such a jump occurs, the returned data is also not always valid.
             // This does _not_ happen with filtdump or iFiltTst. It does, however, also happen if we
             // switch to STA and only let the main thread read from the stream, so MTA and accessing
             // the stream from different threads has nothing to do with it.
             // Luckily, seeking always works.
             auto offset = LARGE_INTEGER();
-            offset.QuadPart = positionBefore.QuadPart + bytesRead;
+            offset.QuadPart = positionBefore.QuadPart;
             COM_DO_OR_RETURN(PIMPL_(stream)->Seek(offset, STREAM_SEEK_SET, nullptr));
+            goto try_again;
         }
         return result;
     }

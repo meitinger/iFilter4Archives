@@ -24,10 +24,8 @@
 #include "CachedChunk.hpp"
 #include "Factory.hpp"
 #include "FileDescription.hpp"
-#include "FileBuffer.hpp"
 #include "ItemTask.hpp"
 #include "Registrar.hpp"
-#include "WriteStream.hpp"
 
 #include <atomic>
 #include <cassert>
@@ -96,7 +94,7 @@ public:
     bool abortExtraction;
 
     // used exclusively in the extractor thread
-    Registrar registrar;
+    const Registrar registrar;
     std::optional<ItemTask> currentExtractTask;
 
     // called from Windows thread (IFilter::Init, final IUnknown::Release)
@@ -182,7 +180,7 @@ public:
         const auto scanSize = UINT64(1 << 23); // taken from 7-Zip source
         COM_DO_OR_RETURN(PIMPL_(archive)->Open(streams::BridgeStream::CreateComInstance<sevenzip::IInStream>(PIMPL_(stream)), &scanSize, nullptr));
 
-        // start new extractor thread
+        // start the extractor thread
         PIMPL_(extractionFinished) = false; // no need to sync yet
         PIMPL_(extractionResult) = S_OK;
         PIMPL_(extractor) = std::thread([PIMPL_CAPTURE, callback = this]() -> void
@@ -190,7 +188,7 @@ public:
             auto hr = S_OK;
             COM_THREAD_BEGIN(COINITBASE_MULTITHREADED);
 
-            // try to extract everything
+            // extract everything and close the archive
             COM_DO_OR_THROW(PIMPL_(archive)->Extract(nullptr, MAXUINT32, 0, &ExtractCallbackForwarder(callback)));
             COM_DO_OR_THROW(PIMPL_(archive)->Close());
 
@@ -328,36 +326,20 @@ public:
         auto streamPtr = sevenzip::ISequentialOutStreamPtr(); // reserve the com pointer and enter nothrow
         COM_NOTHROW_BEGIN;
 
-        // there shouldn't be a pending task (if 7-Zip calls SetOperationResult), but make sure of it anyway
+        // end any pending task and create the current one
         EndExtractionTaskIfAny(PIMPL_(currentExtractTask));
+        PIMPL_(currentExtractTask) = ItemTask(FileDescription::FromArchiveItem(PIMPL_(archive), index));
 
-        // preliminary checks on the file type
-        const auto fileDescription = FileDescription::FromArchiveItem(PIMPL_(archive), index);
-        if (fileDescription.IsDirectory) { return S_OK; } // only handle files
-        if (!fileDescription.SizeIsValid || fileDescription.Size > settings::maximum_file_size()) { return S_OK; } // file size unknown or too large
-        const auto clsid = PIMPL_(registrar).FindClsid(fileDescription.Extension);
-        if (!clsid) { return S_OK; } // no filter available
-        if (*clsid == __uuidof(Filter) && PIMPL_(recursionDepth) >= settings::recursion_depth_limit()) { return S_OK; } // limit recursion
-
-        // limit concurrency
+        // limit concurrency and enqueue the task
         PIMPL_LOCK_BEGIN(m);
         PIMPL_WAIT(m, cv, PIMPL_(tasks).size() <= settings::concurrent_filter_threads() || PIMPL_(abortExtraction));
         if (PIMPL_(abortExtraction)) { return E_ABORT; } // this will abort the entire extraction, not just the current entry
-        PIMPL_LOCK_END;
-
-        // allocate the buffer and get the 7-Zip stream interface
-        auto buffer = streams::FileBuffer(fileDescription);
-        streamPtr = streams::WriteStream::CreateComInstance<sevenzip::ISequentialOutStream>(buffer);
-
-        // create and enqueue the task
-        PIMPL_(currentExtractTask) = ItemTask(*PIMPL_(attributes), buffer, *clsid, PIMPL_(recursionDepth) + 1);
-        PIMPL_LOCK_BEGIN(m);
         PIMPL_(tasks).push_back(*PIMPL_(currentExtractTask));
         PIMPL_LOCK_END;
-        PIMPL_(cv).notify_all(); // let the GetChunk know
+        PIMPL_(cv).notify_all(); // let GetChunk know
 
         // start the task (needs to be after enqueue to ensure ItemTask::Abort will get called if necessary)
-        PIMPL_(currentExtractTask)->Run();
+        streamPtr = PIMPL_(currentExtractTask)->Run(*PIMPL_(attributes), PIMPL_(registrar), PIMPL_(recursionDepth));
 
         // leave nothrow and return the pointer
         COM_NOTHROW_END;
