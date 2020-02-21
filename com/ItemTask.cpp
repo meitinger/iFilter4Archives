@@ -76,15 +76,17 @@ public:
             PIMPL_(chunks).pop_front();
             return result;
         }
-        else if (!SUCCEEDED(PIMPL_(result)))
+        PIMPL_LOCK_END;
+
+        // everything has been extracted and gathered, check if an error occurred
+        if (FAILED(PIMPL_(result)))
         {
-            // there was an error, so the last chunk is an error chunk
+            // return an error chunk and clear the error
             auto result = CachedChunk::FromHResult(PIMPL_(result));
             result.Map(id, PIMPL_(idMap));
             PIMPL_(result) = S_OK;
             return result;
         }
-        PIMPL_LOCK_END;
 
         // wait for the thread and return
         if (PIMPL_(gatherer).joinable())
@@ -110,7 +112,6 @@ public:
         PIMPL_(buffer) = streams::FileBuffer(PIMPL_(description));
         PIMPL_(gatherer) = std::thread([attributes, filterClsid = *clsid, recursionDepth, PIMPL_CAPTURE]() -> void
         {
-            auto hr = S_OK;
             COM_THREAD_BEGIN(COINIT_MULTITHREADED);
 
             // initialize the sub filter
@@ -150,14 +151,10 @@ public:
                 PIMPL_(cv).notify_all();
             }
 
-            COM_THREAD_END(hr);
+            COM_THREAD_END(PIMPL_(result));
 
-            // signal end and store the result
+            // signal end
             PIMPL_LOCK_BEGIN(m);
-            if (SUCCEEDED(PIMPL_(result)))
-            {
-                PIMPL_(result) = hr;
-            }
             PIMPL_(isFilterDone) = true;
             PIMPL_LOCK_END;
             PIMPL_(cv).notify_all();
@@ -170,14 +167,10 @@ public:
         return streams::WriteStream::CreateComInstance<sevenzip::ISequentialOutStream>(*PIMPL_(buffer));
     }
 
-    void ItemTask::SetEndOfExtraction(HRESULT hr)
+    void ItemTask::SetEndOfExtraction()
     {
         // signal end of extraction for the task and stream
         PIMPL_LOCK_BEGIN(m);
-        if (FAILED(hr))
-        {
-            PIMPL_(result) = hr; // extraction errors always override filter failures
-        }
         PIMPL_(isExtractionDone) = true;
         if (!PIMPL_(wasFilterStarted))
         {

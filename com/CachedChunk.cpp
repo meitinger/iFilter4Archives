@@ -64,7 +64,7 @@ public:
         COM_CHECK_POINTER(pcwcBuffer);
         COM_CHECK_POINTER(awcBuffer);
         if (*pcwcBuffer == 0) { return E_NOT_SUFFICIENT_BUFFER; } // need at least space for the null terminator
-        if (!SUCCEEDED(PIMPL_(statResult)) || !(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_TEXT)) { return FILTER_E_NO_TEXT; }
+        if (FAILED(PIMPL_(statResult)) || !(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_TEXT)) { return FILTER_E_NO_TEXT; }
         if (PIMPL_(textOffset) >= PIMPL_(text).size()) { return FILTER_E_NO_MORE_TEXT; }
 
         const auto remaining = PIMPL_(text).size() - PIMPL_(textOffset);
@@ -89,7 +89,7 @@ public:
     SCODE CachedChunk::GetValue(PROPVARIANT** ppPropValue) noexcept
     {
         COM_CHECK_POINTER_AND_SET(ppPropValue, nullptr);
-        if (!SUCCEEDED(PIMPL_(statResult)) || !(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_VALUE)) { return FILTER_E_NO_VALUES; }
+        if (FAILED(PIMPL_(statResult)) || !(PIMPL_(stat).flags & CHUNKSTATE::CHUNK_VALUE)) { return FILTER_E_NO_VALUES; }
         if (!PIMPL_(value)) { return FILTER_E_NO_MORE_VALUES; } // GetValue has already been called
         *ppPropValue = PIMPL_(value).release();
         return S_OK;

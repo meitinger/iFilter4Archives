@@ -45,7 +45,7 @@ public:
         auto bytesRead = ULONG(*processedSize);
         const auto result = PIMPL_(stream)->Read(data, size, &bytesRead);
         *processedSize = bytesRead;
-        if (!SUCCEEDED(result)) { return result; }
+        if (FAILED(result)) { return result; }
         auto positionAfter = ULARGE_INTEGER();
         COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_CUR, &positionAfter));
         if (positionBefore.QuadPart + bytesRead != positionAfter.QuadPart)

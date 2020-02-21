@@ -42,6 +42,6 @@ public:
     void Abort();
     std::optional<CachedChunk> NextChunk(ULONG id);
     sevenzip::ISequentialOutStreamPtr Run(const FilterAttributes& attributes, const Registrar& registrar, ULONG recursionDepth);
-    void SetEndOfExtraction(HRESULT hr); // will not call COM
+    void SetEndOfExtraction(); // will not call COM
     );
 }
