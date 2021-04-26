@@ -28,7 +28,7 @@
 
 namespace archive
 {
-    class Format; // description of an instanceable 7-Zip format
+    class Format; // description of an instance-able 7-Zip format
 
     /******************************************************************************/
 

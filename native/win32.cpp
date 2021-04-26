@@ -46,7 +46,7 @@ namespace win32
 
     void registry_deleter::operator()(HKEY hKey) noexcept
     {
-        ::RegCloseKey(hKey); // might be calles with HKEY_*
+        ::RegCloseKey(hKey); // might be called with HKEY_*
     }
 
     void library_deleter::operator()(HMODULE hLibModule) noexcept

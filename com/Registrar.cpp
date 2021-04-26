@@ -147,7 +147,7 @@ public:
             }
         }
 
-        // get the GUID of the persistant handler for the extension (ignore the null handler unless requested)
+        // get the GUID of the persistent handler for the extension (ignore the null handler unless requested)
         const auto persistentHandlerGuid = GetPersistentHandlerGuid(extension);
         if (persistentHandlerGuid && (*persistentHandlerGuid != NullPersistentHandlerGuid || !settings::ignore_null_persistent_handler()))
         {
@@ -171,7 +171,7 @@ public:
             }
         }
 
-        // fallback to the internal handler if requested
+        // fall-back to the internal handler if requested
         if (settings::use_internal_persistent_handler_if_none_registered())
         {
             if (IsKnownExtension(extension))
@@ -234,7 +234,7 @@ public:
             const auto existingHandler = GetDefaultAsGuid(extPersistentHandlerKey);
             if (existingHandler)
             {
-                // do not override existing hanlders unless it's the NULL filter
+                // do not override existing handlers unless it's the NULL filter
                 if (*existingHandler != NullPersistentHandlerGuid) { continue; }
                 extPersistentHandlerKey.set_string_value(str::HasNullFilter, str::Empty);
             }

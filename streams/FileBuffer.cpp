@@ -64,7 +64,7 @@ public:
 
             // create a temporary file
             const auto tempPath = utils::get_temp_path();
-            TryCreateTempFile(tempPath, PIMPL_(fileHandle)); // this will most likely fail under Windows Search since the default temp dir is not writeable
+            TryCreateTempFile(tempPath, PIMPL_(fileHandle)); // this will most likely fail under Windows Search since the default temp directory is not writable
             if (!PIMPL_(fileHandle))
             {
                 const auto lastError = ::GetLastError();

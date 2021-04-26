@@ -266,7 +266,7 @@ namespace utils
         if (category == errors::com_category()) { return value; } // already HRESULT
         if (category == errors::registry_category())
         {
-            // custom errors (ie. key_missing, value_missing) are just WIN32 errors with additional bits set so remove them
+            // custom errors (i.e. key_missing, value_missing) are just WIN32 errors with additional bits set so remove them
             return HRESULT_FROM_WIN32(value & static_cast<int>(errors::registry_errc::custom) ? value & 0xFFFF : value);
         }
         if (category == std::system_category()) { return HRESULT_FROM_WIN32(value); }
