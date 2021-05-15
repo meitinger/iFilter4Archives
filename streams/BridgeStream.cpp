@@ -66,7 +66,7 @@ public:
             COM_DO_OR_RETURN(PIMPL_(stream)->Seek(offset, STREAM_SEEK_SET, nullptr));
             goto try_again;
         }
-        return result;
+        return S_OK;
     }
 
     STDMETHODIMP BridgeStream::Seek(INT64 offset, UINT32 seekOrigin, UINT64* newPosition) noexcept
@@ -78,7 +78,7 @@ public:
         uliNewPosition.QuadPart = *newPosition;
         const auto result = PIMPL_(stream)->Seek(liOffset, seekOrigin, &uliNewPosition);
         *newPosition = uliNewPosition.QuadPart;
-        return result;
+        return FAILED(result) ? result : S_OK;
     }
 
     STDMETHODIMP BridgeStream::GetSize(UINT64* size) noexcept
