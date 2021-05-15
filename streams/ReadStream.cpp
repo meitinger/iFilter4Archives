@@ -40,7 +40,7 @@ public:
         const auto bytesRead = PIMPL_(buffer).Read(PIMPL_(position), pv, cb);
         *pcbRead = bytesRead;
         PIMPL_(position) += bytesRead;
-        return bytesRead == 0 ? S_FALSE : S_OK;
+        return bytesRead < cb ? S_FALSE : S_OK;
 
         COM_NOTHROW_END;
     }
