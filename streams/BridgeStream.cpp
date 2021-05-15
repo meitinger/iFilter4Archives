@@ -42,7 +42,7 @@ public:
         COM_DO_OR_RETURN(PIMPL_(stream)->Seek(LARGE_INTEGER(), STREAM_SEEK_CUR, &positionBefore));
         auto isFirstTry = true;
     try_again:
-        auto bytesRead = ULONG(*processedSize);
+        auto bytesRead = ULONG(0);
         const auto result = PIMPL_(stream)->Read(data, size, &bytesRead);
         *processedSize = bytesRead;
         if (FAILED(result)) { return result; }

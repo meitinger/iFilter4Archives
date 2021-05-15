@@ -146,7 +146,7 @@ namespace win32
         static guid create();
         static guid create_sequential();
         static guid parse(std::wstring_view s);
-        static bool try_parse(std::wstring_view s, guid& guid);
+        static bool try_parse(std::wstring_view s, guid& guid) noexcept;
     };
 
     /******************************************************************************/

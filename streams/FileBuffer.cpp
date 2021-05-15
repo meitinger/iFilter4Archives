@@ -45,7 +45,7 @@ public:
     bool endOfFile = false;
     );
 
-    static void TryCreateTempFile(const std::filesystem::path path, win32::unique_handle_ptr& handle) noexcept
+    static void TryCreateTempFile(const std::filesystem::path path, win32::unique_handle_ptr& handle)
     {
         const auto filePath = path / utils::get_temp_file_name();
         handle.reset(::CreateFileW(filePath.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, nullptr));

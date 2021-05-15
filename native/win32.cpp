@@ -27,8 +27,8 @@
 #include <Rpc.h>
 #define RPC_DO_OR_THROW(op) \
     do { \
-        const auto rcp = (op); \
-        if (rcp != RPC_S_OK) { throw std::system_error(rcp, std::system_category()); } \
+        const auto rpc = (op); \
+        if (rpc != RPC_S_OK) { throw std::system_error(rpc, std::system_category()); } \
     } \
     while (0)
 
@@ -103,7 +103,7 @@ namespace win32
         return result;
     }
 
-    bool guid::try_parse(std::wstring_view s, guid& guid)
+    bool guid::try_parse(std::wstring_view s, guid& guid) noexcept
     {
         if (s.empty() || s.length() != string_length) { return false; }
         return _snwscanf_s(
