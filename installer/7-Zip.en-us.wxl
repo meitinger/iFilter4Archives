@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2011-2021, Manuel Meitinger
+  
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 2 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<WixLocalization Culture="en-us" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="Name">7-Zip</String>
+  <String Id="Description">7-Zip is a file archiver with a high compression ratio.</String>
+  <String Id="Language">1033</String>
+  <String Id="DowngradeErrorMessage">A newer version of [ProductName] is already installed.</String>
+  <String Id="Wow6432ErrorMessage">This installation package is not supported on your computer. Please use the 64 bit version.</String>
+  <String Id="ShellExtension">7-Zip Shell Extension</String>
+  <String Id="_7zExtension">7-Zip Archive</String>
+  <String Id="_arjExtension">ARJ Archive</String>
+  <String Id="_bz2Extension">Compressed (bzip2) File</String>
+  <String Id="_bzip2Extension">Compressed (bzip2) File</String>
+  <String Id="_cpioExtension">Cpio Archive</String>
+  <String Id="_gzExtension">Compressed (GZip) File</String>
+  <String Id="_gzipExtension">Compressed (GZip) File</String>
+  <String Id="_lhaExtension">Compressed (LHA) File</String>
+  <String Id="_lzhExtension">Compressed (LHA) File</String>
+  <String Id="_lzmaExtension">Compressed (LZMA) File</String>
+  <String Id="_rarExtension">WinRAR Archive</String>
+  <String Id="_tarExtension">Tar Archive</String>
+  <String Id="_tazExtension">Compressed Tar Archive</String>
+  <String Id="_tbzExtension">Compressed (bzip2) Tar Archive</String>
+  <String Id="_tbz2Extension">Compressed (bzip2) Tar Archive</String>
+  <String Id="_tgzExtension">Compressed (GZip) Tar Archive</String>
+  <String Id="_tpzExtension">TPZ Archive</String>
+  <String Id="_txzExtension">Compressed (LZMA2) Tar Archive</String>
+  <String Id="_xzExtension">Compressed (LZMA2) File</String>
+  <String Id="_zExtension">Compressed File</String>
+  <String Id="_cabExtension">Cabinet File</String>
+  <String Id="_zipExtension">Compressed (ZIP) Archive</String>
+  <String Id="_001Extension">Split Archive</String>
+  <String Id="_debExtension">Debian Package</String>
+  <String Id="_dmgExtension">Apple Disk Image</String>
+  <String Id="_esdExtension">Windows Electronic Software Download File</String>
+  <String Id="_fatExtension">FAT Image</String>
+  <String Id="_hfsExtension">HFS Image</String>
+  <String Id="_isoExtension">ISO-9660-CD Image</String>
+  <String Id="_ntfsExtension">NTFS Image</String>
+  <String Id="_rpmExtension">RedHat Package</String>
+  <String Id="_squashfsExtension">SquashFS Image</String>
+  <String Id="_swmExtension">Split Windows Imaging Format File</String>
+  <String Id="_vhdExtension">Virtual Hard Disk Image</String>
+  <String Id="_wimExtension">Windows Imaging Format File</String>
+  <String Id="_xarExtension">XAR Archive</String>
+</WixLocalization>

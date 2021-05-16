@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2011-2021, Manuel Meitinger
+  
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 2 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<?define ShellExtension = {23170F69-40C1-278A-1000-000100020000}?>
+<?define AssociatedExtensions = 7z;arj;bz2;bzip2;cpio;gz;gzip;lha;lzh;lzma;rar;tar;taz;tbz;tbz2;tgz;tpz;txz;xz;z?>
+<?define CompressedExtensions = cab;zip;$(var.AssociatedExtensions)?>
+<?define SupportedExtensions = 001;deb;dmg;esd;fat;hfs;iso;ntfs;rpm;squashfs;swm;vhd;wim;xar;$(var.CompressedExtensions)?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="!(loc.Name)" Language="!(loc.Language)" Version="!(bind.fileVersion._7zFM.exe)" Manufacturer="Igor Pavlov" UpgradeCode="602F7F7CBAB4407FB48D20C942882892" Codepage="1252">
+    <Package Id="*" Description="!(loc.Description)" InstallerVersion="200" Compressed="yes" Platform="$(var.Platform)" InstallPrivileges="elevated" InstallScope="perMachine" />
+    <Media Id="1" Cabinet="_7z.cab" EmbedCab="yes" CompressionLevel="high" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPPRODUCTICON" Value="_7z.exe" />
+    <?if $(var.Platform) != x64?>
+    <Condition Message="!(loc.Wow6432ErrorMessage)"><![CDATA[NOT VersionNT64]]></Condition>
+    <?endif?>
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="!(loc.DowngradeErrorMessage)" />
+    <!-- Icon by Benjigarner (Vincent Garnier) CC-BY-NC -->
+    <Icon Id="_7z.exe" SourceFile="..\..\7-Zip.ico" />
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramMenuFolder" />
+      <?if $(var.Platform) = x64?>
+      <Directory Id="WindowsFolder" />
+      <?define ProgramFiles = ProgramFiles64Folder?>
+      <?else?>
+      <?define ProgramFiles = ProgramFilesFolder?>
+      <?endif?>
+      <Directory Id="$(var.ProgramFiles)">
+        <Directory Id="_7zFolder" Name="7-Zip">
+          <Directory Id="LanguageFolder" Name="Lang" />
+        </Directory>
+      </Directory>
+    </Directory>
+    <Feature Id="_7z">
+
+      <!-- files -->
+      <?foreach File in 7z.dll;7z.exe;7z.sfx;7zCon.sfx;7zG.exe;7-zip.chm;7-zip.dll;descript.ion;History.txt;License.txt;readme.txt?>
+      <Component Directory="_7zFolder">
+        <File KeyPath="yes" Source="$(var.File)" />
+      </Component>
+      <?endforeach?>
+      <Component Directory="_7zFolder">
+        <File KeyPath="yes" Source="7zFM.exe">
+          <Shortcut Id="_7zFM.exe" Advertise="yes" Name="!(loc.Name)" Directory="ProgramMenuFolder" Description="!(loc.Description)" Icon="_7z.exe" />
+        </File>
+      </Component>
+      <Component Directory="_7zFolder">
+        <File KeyPath="yes" Source="..\..\..\out\build\$(var.Platform)-$(var.Configuration)\iFilter4Archives.dll" SelfRegCost="1" />
+      </Component>
+      <Component Directory="LanguageFolder">
+        <File KeyPath="yes" Source="Lang\en.ttt" />
+      </Component>
+      <?foreach Language in af;an;ar;ast;az;ba;be;bg;bn;br;ca;co;cs;cy;da;de;el;eo;es;et;eu;ext;fa;fi;fr;fur;fy;ga;gl;gu;he;hi;hr;hu;hy;id;io;is;it;ja;ka;kaa;kab;kk;ko;ku-ckb;ku;ky;lij;lt;lv;mk;mn;mng;mng2;mr;ms;nb;ne;nl;nn;pa-in;pl;ps;pt-br;pt;ro;ru;sa;si;sk;sl;sq;sr-spc;sr-spl;sv;sw;ta;tg;th;tk;tr;tt;ug;uk;uz-cyrl;uz;va;vi;yo;zh-cn;zh-tw?>
+      <Component Directory="LanguageFolder">
+        <File KeyPath="yes" Source="Lang\$(var.Language).txt" />
+      </Component>
+      <?endforeach?>
+      <?if $(var.Platform) = x64?>
+      <Component Directory="_7zFolder">
+        <File KeyPath="yes" Source="7-zip32.dll" />
+      </Component>
+      <?endif?>
+
+      <!-- perceived-as-compressed extensions -->
+      <?foreach Extension in $(var.CompressedExtensions)?>
+      <Component Directory="_7zFolder" Guid="">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key=".$(var.Extension)" Name="PerceivedType" Value="compressed" Type="string" />
+      </Component>
+      <?endforeach?>
+
+      <!-- application capabilities -->
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKLM" Key="SOFTWARE\RegisteredApplications" Name="7-Zip" Value="SOFTWARE\7-Zip\Capabilities" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKLM" Key="SOFTWARE\7-Zip\Capabilities" Name="ApplicationName" Value="!(loc.Name)" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKLM" Key="SOFTWARE\7-Zip\Capabilities" Name="ApplicationDescription" Value="!(loc.Description)" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKLM" Key="SOFTWARE\7-Zip\Capabilities\MIMEAssociations" Name="application/x-7z-compressed" Value="7-Zip.7z" Type="string" />
+      </Component>
+      <?foreach Extension in $(var.SupportedExtensions)?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKLM" Key="SOFTWARE\7-Zip\Capabilities\FileAssociations" Name=".$(var.Extension)" Value="7-Zip.$(var.Extension)" Type="string" />
+      </Component>
+      <?endforeach?>
+
+      <!-- application registration -->
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\7zFM.exe" Value="[_7zFolder]7zFM.exe" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\7zFM.exe" Name="Path" Value="[_7zFolder]" Type="string" />
+      </Component>
+
+      <!-- mime registration -->
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="MIME\Database\Content Type\application/x-7z-compressed" Name="Extension" Value=".7z" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key=".7z" Name="Content Type" Value="application/x-7z-compressed" Type="string" />
+      </Component>
+
+      <!-- archive extension association -->
+      <?foreach Extension in $(var.AssociatedExtensions)?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key=".$(var.Extension)" Value="7-Zip.$(var.Extension)" Type="string" />
+      </Component>
+      <?endforeach?>
+
+      <!-- progid names and handlers -->
+      <?foreach Extension in $(var.SupportedExtensions)?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key=".$(var.Extension)\OpenWithProgids" Name="7-Zip.$(var.Extension)" Value="" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.$(var.Extension)" Value="!(loc._$(var.Extension)Extension)" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.$(var.Extension)\shell\open\command" Value="&quot;[_7zFolder]7zFM.exe&quot; &quot;%1&quot;" Type="string" />
+      </Component>
+      <?endforeach?>
+
+      <!-- progid icons -->
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.7z\DefaultIcon" Value="[_7zFolder]7z.dll,0" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.zip\DefaultIcon" Value="[_7zFolder]7z.dll,1" Type="string" />
+      </Component>
+      <?foreach Extension in bz2;bzip2;tbz;tbz2?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.$(var.Extension)\DefaultIcon" Value="[_7zFolder]7z.dll,2" Type="string" />
+      </Component>
+      <?endforeach?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.rar\DefaultIcon" Value="[_7zFolder]7z.dll,3" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.arj\DefaultIcon" Value="[_7zFolder]7z.dll,4" Type="string" />
+      </Component>
+      <?foreach Extension in taz;z?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.$(var.Extension)\DefaultIcon" Value="[_7zFolder]7z.dll,5" Type="string" />
+      </Component>
+      <?endforeach?>
+      <?foreach Extension in lha;lzh?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.$(var.Extension)\DefaultIcon" Value="[_7zFolder]7z.dll,6" Type="string" />
+      </Component>
+      <?endforeach?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.cab\DefaultIcon" Value="[_7zFolder]7z.dll,7" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.iso\DefaultIcon" Value="[_7zFolder]7z.dll,8" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.001\DefaultIcon" Value="[_7zFolder]7z.dll,9" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.rpm\DefaultIcon" Value="[_7zFolder]7z.dll,10" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.deb\DefaultIcon" Value="[_7zFolder]7z.dll,11" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.cpio\DefaultIcon" Value="[_7zFolder]7z.dll,12" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.tar\DefaultIcon" Value="[_7zFolder]7z.dll,13" Type="string" />
+      </Component>
+      <?foreach Extension in gz;gzip;tgz;tpz?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.$(var.Extension)\DefaultIcon" Value="[_7zFolder]7z.dll,14" Type="string" />
+      </Component>
+      <?endforeach?>
+      <?foreach Extension in esd;swm;wim?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.$(var.Extension)\DefaultIcon" Value="[_7zFolder]7z.dll,15" Type="string" />
+      </Component>
+      <?endforeach?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.lzma\DefaultIcon" Value="[_7zFolder]7z.dll,16" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.dmg\DefaultIcon" Value="[_7zFolder]7z.dll,17" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.hfs\DefaultIcon" Value="[_7zFolder]7z.dll,18" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.xar\DefaultIcon" Value="[_7zFolder]7z.dll,19" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.vhd\DefaultIcon" Value="[_7zFolder]7z.dll,20" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.fat\DefaultIcon" Value="[_7zFolder]7z.dll,21" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.ntfs\DefaultIcon" Value="[_7zFolder]7z.dll,22" Type="string" />
+      </Component>
+      <?foreach Extension in xz;txz?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.$(var.Extension)\DefaultIcon" Value="[_7zFolder]7z.dll,23" Type="string" />
+      </Component>
+      <?endforeach?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="7-Zip.squashfs\DefaultIcon" Value="[_7zFolder]7z.dll,24" Type="string" />
+      </Component>
+
+      <!-- perceived-as-compressed icon and open-with registration -->
+      <Component Directory="_7zFolder" Guid="">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="SystemFileAssociations\compressed\DefaultIcon" Value="%SystemRoot%\system32\zipfldr.dll" Type="expandable" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="SystemFileAssociations\compressed\OpenWithList\7zFM.exe" Value="" Type="string" />
+      </Component>
+
+      <!-- open-with handler -->
+      <?foreach Extension in $(var.SupportedExtensions)?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="Applications\7zFM.exe\SupportedTypes" Name=".$(var.Extension)" Value="" Type="string" />
+      </Component>
+      <?endforeach?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="Applications\7zFM.exe\shell\open" Name="FriendlyAppName" Value="!(loc.Name)" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="Applications\7zFM.exe\shell\open\command" Value="&quot;[_7zFolder]7zFM.exe&quot; &quot;%1&quot;" Type="string" />
+      </Component>
+
+      <!-- shell extension -->
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="CLSID\$(var.ShellExtension)" Value="!(loc.ShellExtension)" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="CLSID\$(var.ShellExtension)\InprocServer32" Value="[_7zFolder]7-zip.dll" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="CLSID\$(var.ShellExtension)\InprocServer32" Name="ThreadingModel" Value="Apartment" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved" Name="$(var.ShellExtension)" Value="!(loc.ShellExtension)" Type="string" />
+      </Component>
+      <?if $(var.Platform) = x64?>
+      <Component Directory="WindowsFolder" Win64="no">
+        <RegistryValue Id="reg2AB2945656300C1AC96E2B49C256FC2B.86" KeyPath="yes" Root="HKCR" Key="CLSID\$(var.ShellExtension)" Value="!(loc.ShellExtension)" Type="string" />
+      </Component>
+      <Component Directory="WindowsFolder" Win64="no">
+        <RegistryValue Id="regE678356132FC58923B13DDDB19337E04.86" KeyPath="yes" Root="HKCR" Key="CLSID\$(var.ShellExtension)\InprocServer32" Value="[_7zFolder]7-zip32.dll" Type="string" />
+      </Component>
+      <Component Directory="WindowsFolder" Win64="no">
+        <RegistryValue Id="regD9F7CD43F26F6130C32FADEA3BC2C4C7.86" KeyPath="yes" Root="HKCR" Key="CLSID\$(var.ShellExtension)\InprocServer32" Name="ThreadingModel" Value="Apartment" Type="string" />
+      </Component>
+      <Component Directory="WindowsFolder" Win64="no">
+        <RegistryValue Id="reg098198B6D1E20E348AF83A9AA0239117.86" KeyPath="yes" Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved" Name="$(var.ShellExtension)" Value="!(loc.ShellExtension)" Type="string" />
+      </Component>
+      <?endif?>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="*\shellex\ContextMenuHandlers\7-Zip" Value="$(var.ShellExtension)" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="Directory\shellex\ContextMenuHandlers\7-Zip" Value="$(var.ShellExtension)" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="Directory\shellex\DragDropHandlers\7-Zip" Value="$(var.ShellExtension)" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="Drive\shellex\DragDropHandlers\7-Zip" Value="$(var.ShellExtension)" Type="string" />
+      </Component>
+      <Component Directory="_7zFolder">
+        <RegistryValue KeyPath="yes" Root="HKCR" Key="Folder\shellex\ContextMenuHandlers\7-Zip" Value="$(var.ShellExtension)" Type="string" />
+      </Component>
+
+    </Feature>
+  </Product>
+</Wix>

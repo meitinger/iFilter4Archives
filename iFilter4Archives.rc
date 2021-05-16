@@ -1,6 +1,7 @@
+#pragma code_page(65001)
+
 #include "Windows.h"
 
-#pragma code_page(65001)
 
 #define VER_FILE        1,0,3,0
 #define VER_FILE_STR    "1.0.3.0"

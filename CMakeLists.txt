@@ -14,3 +14,5 @@ add_subdirectory(streams)
 
 add_library(iFilter4Archives SHARED "iFilter4Archives.cpp" "iFilter4Archives.rc" "iFilter4Archives.def")
 target_link_libraries(iFilter4Archives com native)
+
+install(CODE "execute_process(WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/installer COMMAND msbuild -p:Platform=$<IF:$<EQUAL:${CMAKE_SIZEOF_VOID_P},4>,x86,x64> -p:Configuration=$<IF:$<CONFIG:Debug>,Debug,Release>)")

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2011-2021, Manuel Meitinger
+  
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 2 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<WixLocalization Culture="de-de" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="Name">7-Zip</String>
+  <String Id="Description">7-Zip ist ein Datenkompressionsprogramm mit einer hohen Kompressionsrate.</String>
+  <String Id="Language">1031</String>
+  <String Id="DowngradeErrorMessage">Eine neuere Version von [ProductName] ist bereits installiert.</String>
+  <String Id="Wow6432ErrorMessage">Dieses Installationsprogramm ist auf Ihrem Computer nicht unterstützt. Verwenden Sie das 64 bit-Installationsprogramm.</String>
+  <String Id="ShellExtension">7-Zip Shellerweiterung</String>
+  <String Id="_7zExtension">7-Zip-Archiv</String>
+  <String Id="_arjExtension">ARJ-Archiv</String>
+  <String Id="_bz2Extension">bzip2-komprimierte Datei</String>
+  <String Id="_bzip2Extension">bzip2-komprimierte Datei</String>
+  <String Id="_cpioExtension">cpio-Archiv</String>
+  <String Id="_gzExtension">gzip-komprimierte Datei</String>
+  <String Id="_gzipExtension">gzip-komprimierte Datei</String>
+  <String Id="_lhaExtension">LHA-komprimierte Datei</String>
+  <String Id="_lzhExtension">LHA-komprimierte Datei</String>
+  <String Id="_lzmaExtension">LZMA-komprimierte Datei</String>
+  <String Id="_rarExtension">WinRAR-Archiv</String>
+  <String Id="_tarExtension">Tar-Archiv</String>
+  <String Id="_tazExtension">Compress-komprimiertes Tar-Archiv</String>
+  <String Id="_tbzExtension">bzip2-komprimiertes Tar-Archiv</String>
+  <String Id="_tbz2Extension">bzip2-komprimiertes Tar-Archiv</String>
+  <String Id="_tgzExtension">gzip-komprimiertes Tar-Archiv</String>
+  <String Id="_tpzExtension">TPZ-Archiv</String>
+  <String Id="_txzExtension">LZMA2-komprimiertes Tar-Archiv</String>
+  <String Id="_xzExtension">LZMA2-komprimierte Datei</String>
+  <String Id="_zExtension">Compress-komprimierte Datei</String>
+  <String Id="_cabExtension">Cabinet-Archiv</String>
+  <String Id="_zipExtension">ZIP-komprimiertes Archiv</String>
+  <String Id="_001Extension">Geteiltes Archiv</String>
+  <String Id="_debExtension">Debian-Paketdatei</String>
+  <String Id="_dmgExtension">Apple-Abbilddatei</String>
+  <String Id="_esdExtension">Windows-ESD-Installationsdatei</String>
+  <String Id="_fatExtension">FAT-Abbild</String>
+  <String Id="_hfsExtension">HFS-Abbild</String>
+  <String Id="_isoExtension">ISO-9660-CD-Abbild</String>
+  <String Id="_ntfsExtension">NTFS-Abbild</String>
+  <String Id="_rpmExtension">RedHat-Paketdatei</String>
+  <String Id="_squashfsExtension">SquashFS-Abbild</String>
+  <String Id="_swmExtension">Geteiltes Windows-Installationsabbild</String>
+  <String Id="_vhdExtension">Virtuelle Festplattendatei</String>
+  <String Id="_wimExtension">Windows-Installationsabbild</String>
+  <String Id="_xarExtension">XAR-Archiv</String>
+</WixLocalization>
